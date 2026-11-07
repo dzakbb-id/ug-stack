@@ -398,6 +398,33 @@ def delete_user(actor, target: str):
     return True, f"Pengguna {target} dihapus."
 
 
+def clear_non_admin_users(actor):
+    """Hapus semua akun selain admin beserta progres, skor, langganan, dan sesinya."""
+    if not is_admin(actor):
+        return False, "Hanya admin yang boleh mengelola pengguna."
+    removed = []
+    try:
+        with storage.LOCK:
+            users = storage.load_json(USERS_FILE, [])
+            kept = []
+            for u in users:
+                if u.get("role") == "admin":
+                    kept.append(u)
+                else:
+                    removed.append(u["username"])
+            storage.save_json(USERS_FILE, kept)
+            for uname in removed:
+                progress.remove_user(uname)
+                quiz.remove_user(uname)
+                enrollment.remove_user(uname)
+    except StorageError as e:
+        return False, str(e)
+    for uname in removed:
+        sessions.revoke_user(uname)
+    audit.log(actor["username"], "HAPUS_PENGGUNA", f"reset non-admin ({len(removed)})")
+    return True, "Semua akun selain admin berhasil dihapus."
+
+
 def generate_password(length: int = 12) -> str:
     """Password acak yang kuat (mengandung huruf besar, kecil, dan angka; tanpa karakter membingungkan)."""
     letters = "".join(c for c in string.ascii_letters if c not in "lIO")

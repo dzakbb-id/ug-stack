@@ -307,8 +307,75 @@ def _tab_users(page, user, mobile, refresh):
         active_color="#10B981",
         on_change=on_toggle_registration,
     )
+
+    def confirm_clear_non_admin(e):
+        def go(e2):
+            ok, msg = auth.clear_non_admin_users(user)
+            _close(page)
+            page.show_snack(msg)
+            refresh()
+        _dialog(
+            page,
+            "Hapus semua selain admin?",
+            ft.Text("Semua akun mahasiswa dan dosen beserta progres, skor, dan sesinya akan dihapus permanen. Akun admin tetap aman."),
+            [
+                ft.TextButton("Batal", on_click=lambda e2: _close(page)),
+                ft.ElevatedButton("Hapus", bgcolor="#E53935", color=ft.colors.WHITE, on_click=go),
+            ],
+        )
+
+    all_users = auth.list_users(user)
+    table_rows = [
+        ft.DataRow(
+            cells=[
+                ft.DataCell(ft.Text(str(idx), size=12, color=TEXT_MUTED)),
+                ft.DataCell(ft.Text(u.get("full_name") or "-", size=13, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)),
+                ft.DataCell(ft.Text(u.get("npm") or "-", size=13, color=TEXT_PRIMARY)),
+                ft.DataCell(ft.Text(u["username"], size=13, color=TEXT_MUTED)),
+                ft.DataCell(ft.Text(u["role"], size=12, color=TEXT_PRIMARY)),
+                ft.DataCell(ft.Text(u["created_at"], size=12, color=TEXT_MUTED)),
+            ]
+        )
+        for idx, u in enumerate(all_users, 1)
+    ]
+    user_table = glass_card(
+        ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Text("Tabel Data Pengguna", size=15, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                        _dark_outlined_btn("🧹 Hapus Semua Selain Admin", confirm_clear_non_admin),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    wrap=True,
+                ),
+                ft.Row(
+                    [
+                        ft.DataTable(
+                            heading_row_color=BG_CARD_ALT,
+                            border=ft.border.all(1, BORDER_SUBTLE),
+                            border_radius=8,
+                            column_spacing=22,
+                            columns=[
+                                ft.DataColumn(ft.Text("#", weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)),
+                                ft.DataColumn(ft.Text("Nama Lengkap", weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)),
+                                ft.DataColumn(ft.Text("NPM", weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)),
+                                ft.DataColumn(ft.Text("Username", weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)),
+                                ft.DataColumn(ft.Text("Peran", weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)),
+                                ft.DataColumn(ft.Text("Terdaftar Pada", weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)),
+                            ],
+                            rows=table_rows,
+                        )
+                    ],
+                    scroll=ft.ScrollMode.AUTO,
+                ),
+            ],
+            spacing=10,
+        ),
+        padding=16,
+    )
     rows = []
-    for u in auth.list_users(user):
+    for u in all_users:
         name = u["username"]
 
         def reset(e, name=name):
@@ -366,6 +433,7 @@ def _tab_users(page, user, mobile, refresh):
     return ft.Column([
         _dark_heading("Pengaturan"),
         glass_card(reg_switch, padding=16),
+        user_table,
         _dark_heading(f"Daftar akun ({len(rows)})"),
         *rows,
     ], spacing=12)

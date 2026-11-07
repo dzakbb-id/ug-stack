@@ -440,6 +440,12 @@ class TestEndToEndUI(unittest.TestCase):
         self.assertFalse(ok_adm_bad)
         self.assertNotIn("NPM mahasiswa wajib diisi", msg_adm_bad)
 
+        # 4. Uji hapus semua akun selain admin (clear_non_admin_users)
+        ok_clr, _ = auth.clear_non_admin_users(u_adm1)
+        self.assertTrue(ok_clr)
+        remaining = auth.list_users(u_adm1)
+        self.assertEqual([u["username"] for u in remaining], ["admin"])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
