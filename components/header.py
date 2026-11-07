@@ -95,12 +95,16 @@ def create_header(
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
         if user:
+            uname = str(user.get("username") or "").strip()
+            npm = str(user.get("npm") or "").strip()
+            fname = str(user.get("full_name") or "").strip()
+            disp_header = uname if (uname and npm and uname.lower() != npm.lower()) else (fname or uname)
             actions = [
                 lang_btn,
                 theme_btn,
                 search_btn,
                 ft.TextButton(
-                    content=ft.Text(f"👤 {user['username']}", color=ft.colors.WHITE, size=13),
+                    content=ft.Text(f"👤 {disp_header}", color=ft.colors.WHITE, size=13),
                     on_click=lambda e: call(on_dashboard_click),
                 ),
                 ft.IconButton(

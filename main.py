@@ -224,7 +224,7 @@ def main(page: ft.Page):
         token = sessions.create(user)
         save_pref("session", token or "")
         save_pref("user", sessions.sign_user_backup(user))
-        show_snack(f"Selamat datang, {user['username']}!")
+        show_snack(f"Selamat datang, {auth.greeting_name(user)}!")
         open_dashboard()
         if user.get("must_change"):                             # password sementara/bawaan wajib diganti
             open_change_password(page, user, forced=True)

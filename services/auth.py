@@ -52,6 +52,18 @@ def _public(user: dict) -> dict:
     return pub
 
 
+def greeting_name(user: dict) -> str:
+    """Nama untuk sapaan 'Halo, ...': gunakan Nama Lengkap jika username masih berupa NPM, atau username kustom bila sudah diubah."""
+    if not isinstance(user, dict):
+        return ""
+    uname = str(user.get("username") or "").strip()
+    npm = str(user.get("npm") or "").strip()
+    fname = str(user.get("full_name") or "").strip()
+    if uname and npm and uname.lower() != npm.lower():
+        return uname
+    return fname or uname
+
+
 def _find(users: list, username: str):
     target = " ".join((username or "").strip().split()).lower()
     if not target:
@@ -237,7 +249,7 @@ def login(username: str, password: str, expected_role: str = None, allow_admin: 
         if user["role"] == "mahasiswa" and npm_clean and name_clean:
             existing_npm = str(user.get("npm") or "").strip()
             existing_name = " ".join(str(user.get("full_name") or "").strip().split())
-            if existing_npm and existing_npm.lower() != npm_clean.lower():
+            if existing_npm and existing_npm.lower() != npm_clean.lower() and user["username"].lower() != npm_clean.lower():
                 return False, "NPM tidak sesuai dengan akun mahasiswa ini.", None
             if existing_name and existing_name.lower() != name_clean.lower():
                 return False, "Nama lengkap tidak sesuai dengan data NPM tersebut.", None
@@ -313,6 +325,76 @@ def change_password(username: str, old: str, new: str, confirm: str):
         return False, str(e)
     audit.log(username, "GANTI_PASSWORD")
     return True, "Password berhasil diubah."
+
+
+def change_username(old_username: str, new_username: str, new_full_name: str = None):
+    """Ubah username (dan opsional nama lengkap) beserta migrasi progres, skor quiz, langganan, dan sesi."""
+    old_clean = (old_username or "").strip()
+    new_clean = (new_username or "").strip()
+    if not old_clean:
+        return False, "Pengguna tidak ditemukan."
+    ok, msg = validate_username(new_clean)
+    if not ok:
+        return False, msg
+    clean_fname = " ".join((new_full_name or "").strip().split()) if new_full_name is not None else None
+    if clean_fname:
+        ok_n, msg_n = validate_full_name(clean_fname)
+        if not ok_n:
+            return False, msg_n
+    try:
+        with storage.LOCK:
+            users = storage.load_json(USERS_FILE, [])
+            target_u = None
+            for u in users:
+                if u["username"].lower() == old_clean.lower():
+                    target_u = u
+                    break
+            if target_u is None:
+                return False, "Pengguna tidak ditemukan."
+            if target_u.get("role") == "admin" and new_clean.lower() != old_clean.lower():
+                return False, "Username sudah dipakai."
+            for u in users:
+                if u is not target_u:
+                    if u["username"].lower() == new_clean.lower() or str(u.get("npm") or "").strip().lower() == new_clean.lower():
+                        return False, "Username sudah dipakai."
+            actual_old = target_u["username"]
+            target_u["username"] = new_clean
+            if clean_fname:
+                target_u["full_name"] = clean_fname
+            storage.save_json(USERS_FILE, users)
+
+            if actual_old != new_clean:
+                prog_data = storage.load_json(progress.PROGRESS_FILE, {})
+                if actual_old in prog_data:
+                    existing_prog = prog_data.get(new_clean, [])
+                    for mid in prog_data.pop(actual_old, []):
+                        if mid not in existing_prog:
+                            existing_prog.append(mid)
+                    prog_data[new_clean] = existing_prog
+                    storage.save_json(progress.PROGRESS_FILE, prog_data)
+
+                score_data = storage.load_json(quiz.SCORES_FILE, {})
+                if actual_old in score_data:
+                    score_data[new_clean] = score_data.pop(actual_old)
+                    storage.save_json(quiz.SCORES_FILE, score_data)
+
+                enroll_data = storage.load_json(enrollment.ENROLL_FILE, {})
+                if actual_old in enroll_data:
+                    enroll_data[new_clean] = enroll_data.pop(actual_old)
+                    storage.save_json(enrollment.ENROLL_FILE, enroll_data)
+
+                sess_data = storage.load_json(sessions.SESSIONS_FILE, {})
+                sess_changed = False
+                for rec in sess_data.values():
+                    if isinstance(rec, dict) and rec.get("username", "").lower() == actual_old.lower():
+                        rec["username"] = new_clean
+                        sess_changed = True
+                if sess_changed:
+                    storage.save_json(sessions.SESSIONS_FILE, sess_data)
+    except StorageError as e:
+        return False, str(e)
+    audit.log(new_clean, "UBAH_USERNAME", f"{old_clean} -> {new_clean}")
+    return True, "Username berhasil diperbarui."
 
 
 # ------------------------------------------------------------------ manajemen pengguna (admin)

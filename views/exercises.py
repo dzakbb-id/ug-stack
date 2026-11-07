@@ -69,7 +69,7 @@ def get_exercises_view(page: ft.Page, user, mobile: bool, on_open_quiz, on_tryit
     note = (
         "Login agar skor tersimpan dan Anda bisa mendapatkan sertifikat."
         if not user
-        else f"Skor Anda tersimpan otomatis, {user['username']}."
+        else f"Skor Anda tersimpan otomatis, {(user.get('full_name') or '').strip() or user['username']}."
     )
     return ft.Column(
         [

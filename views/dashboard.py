@@ -20,7 +20,7 @@ from services import auth, modules as svc, progress, reports
 from services.roles import can_manage_content, is_admin
 from services.storage import StorageError
 from services.validators import BAHASA, LEVELS
-from views.account import open_change_avatar
+from views.account import open_change_avatar, open_change_username
 
 LEVEL_COLORS = {"Beginner": "#04AA6D", "Intermediate": "#F59E0B", "Advanced": "#E53935"}
 SORT_OPTIONS = [("judul", "Judul (A-Z)"), ("durasi", "Durasi"), ("level", "Tingkat")]
@@ -307,11 +307,15 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
     def on_avatar():
         open_change_avatar(page, user, on_done=lambda: on_nav("dashboard") if on_nav else refresh())
 
+    def on_username():
+        open_change_username(page, user, on_done=lambda: on_nav("dashboard") if on_nav else refresh())
+
     sidebar = sidebar_shell(
         brand_title="Dasbor",
         nav_buttons=nav_buttons,
         user=user,
         profile_actions=[
+            *([ft.TextButton("✏️ Ubah Username", on_click=lambda e: on_username())] if not is_admin(user) else []),
             ft.TextButton("Ganti password", on_click=lambda e: on_change_password() if on_change_password else None),
             ft.ElevatedButton(
                 "Keluar",
@@ -331,8 +335,9 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
                               on_click=lambda e: open_form())] if admin else []),
         wrap=True, spacing=15, alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
 
+    greet = auth.greeting_name(user)
     right_top = [
-        user_avatar_badge(user.get("username", ""), user.get("avatar", ""), size=36, on_click=lambda e: on_avatar()),
+        user_avatar_badge(greet, user.get("avatar", ""), size=36, on_click=lambda e: on_avatar()),
     ]
     if admin:
         right_top.append(
@@ -349,7 +354,7 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
     main_panel = ft.Container(
         col={"xs": 12, "md": 9, "lg": 9},
         content=ft.Column([
-            top_bar(f"Halo, {user['username']} 👋", "Ringkasan aktivitas platform Anda", right_controls=right_top),
+            top_bar(f"Halo, {greet} 👋", "Ringkasan aktivitas platform Anda", right_controls=right_top),
             kpi_area,
             analytics_area,
             ft.Container(height=4),

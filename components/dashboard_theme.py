@@ -277,8 +277,14 @@ def sidebar_shell(brand_title: str, nav_buttons: list, user: dict, profile_actio
     """Sidebar kiri bergaya ModyLearn dengan logo di atas, menu di tengah, dan kartu profil di bawah."""
     role_upper = (user.get("role") or "mahasiswa").upper()
     npm_val = (user.get("npm") or "").strip()
-    role_sub = f"{role_upper} • {npm_val}" if npm_val else role_upper
-    display_name = (user.get("full_name") or "").strip() or user.get("username", "")
+    uname_val = (user.get("username") or "").strip()
+    if npm_val and uname_val and uname_val.lower() != npm_val.lower():
+        role_sub = f"{role_upper} • @{uname_val} • {npm_val}"
+    elif npm_val:
+        role_sub = f"{role_upper} • {npm_val}"
+    else:
+        role_sub = role_upper
+    display_name = (user.get("full_name") or "").strip() or uname_val
     avatar_data = user.get("avatar") or ""
 
     brand = ft.Container(

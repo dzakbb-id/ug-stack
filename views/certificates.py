@@ -88,8 +88,9 @@ def get_certificates_view(page: ft.Page, user, mobile: bool, on_login, on_quiz, 
                     ),
                 )
             )
+        disp_owner = (user.get("full_name") or "").strip() or user["username"]
         body = [
-            ft.Text(f"Sertifikat milik {user['username']}", size=18, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+            ft.Text(f"Sertifikat milik {disp_owner}", size=18, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
             ft.ResponsiveRow(cards, spacing=16, run_spacing=16),
         ]
 
@@ -132,7 +133,7 @@ def get_certificate_detail_view(page: ft.Page, user, lang_key: str, mobile: bool
                 ft.Text("Platform Belajar UG-Stack", size=13, color=ft.colors.ON_SURFACE_VARIANT),
                 ft.Divider(height=20, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)),
                 ft.Text("Diberikan kepada", size=14, color=ft.colors.ON_SURFACE_VARIANT),
-                ft.Text(cert["username"], size=32 if not mobile else 26, weight=ft.FontWeight.BOLD, color=GREEN, text_align=ft.TextAlign.CENTER),
+                ft.Text((user.get("full_name") or "").strip() or cert["username"], size=32 if not mobile else 26, weight=ft.FontWeight.BOLD, color=GREEN, text_align=ft.TextAlign.CENTER),
                 ft.Text(f"telah lulus quiz {cert['lang']} dengan nilai {cert['score']}%", size=16, color=ft.colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
                 ft.Text(f"Tanggal: {cert['date']}", size=13, color=ft.colors.ON_SURFACE_VARIANT),
                 ft.Container(height=10),

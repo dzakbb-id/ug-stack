@@ -440,7 +440,17 @@ class TestEndToEndUI(unittest.TestCase):
         self.assertFalse(ok_adm_bad)
         self.assertNotIn("NPM mahasiswa wajib diisi", msg_adm_bad)
 
-        # 4. Uji hapus semua akun selain admin (clear_non_admin_users)
+        # 4. Uji sapaan menggunakan Nama Lengkap ketika username == NPM, serta fitur ubah username
+        auth.register("50426261", "Rahasia123", "Rahasia123", npm="50426261", full_name="Dzakwanandra Baruna Barlianto", require_identity=True)
+        _, _, u_dzak = auth.login("50426261", "Rahasia123", expected_role="mahasiswa", npm="50426261", full_name="Dzakwanandra Baruna Barlianto")
+        self.assertEqual(auth.greeting_name(u_dzak), "Dzakwanandra Baruna Barlianto")
+        ok_chg, _ = auth.change_username("50426261", "dzakbb", "Dzakwanandra Baruna Barlianto")
+        self.assertTrue(ok_chg)
+        _, _, u_dzak2 = auth.login("50426261", "Rahasia123", expected_role="mahasiswa", npm="50426261", full_name="Dzakwanandra Baruna Barlianto")
+        self.assertEqual(u_dzak2["username"], "dzakbb")
+        self.assertEqual(auth.greeting_name(u_dzak2), "dzakbb")
+
+        # 5. Uji hapus semua akun selain admin (clear_non_admin_users)
         ok_clr, _ = auth.clear_non_admin_users(u_adm1)
         self.assertTrue(ok_clr)
         remaining = auth.list_users(u_adm1)

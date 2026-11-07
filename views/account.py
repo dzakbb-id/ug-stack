@@ -135,6 +135,80 @@ def open_change_password(page: ft.Page, user: dict, forced: bool = False, on_don
     page.update()
 
 
+def open_change_username(page: ft.Page, user: dict, on_done=None):
+    """Dialog ubah username & nama lengkap untuk mahasiswa/pengguna."""
+    cur_uname = str(user.get("username") or "").strip()
+    cur_npm = str(user.get("npm") or "").strip()
+    cur_fname = str(user.get("full_name") or "").strip()
+
+    uname_tf = ft.TextField(
+        label="Username (4-20 huruf/angka/_)",
+        value="" if (cur_npm and cur_uname.lower() == cur_npm.lower()) else cur_uname,
+        hint_text=cur_uname,
+        color=ft.colors.ON_SURFACE,
+        border_radius=10,
+        autofocus=True,
+    )
+    fname_tf = ft.TextField(
+        label="Nama Lengkap Mahasiswa (wajib)",
+        value=cur_fname,
+        color=ft.colors.ON_SURFACE,
+        border_radius=10,
+        visible=user.get("role") == "mahasiswa" or bool(cur_fname),
+    )
+    msg = ft.Text("", size=13, color=ft.colors.RED_700)
+    width = max(250, min(380, (page.width or 400) - 70))
+
+    def save(e=None):
+        candidate_uname = (uname_tf.value or "").strip() or cur_uname
+        candidate_fname = (fname_tf.value or "").strip() if fname_tf.visible else None
+        ok, text = auth.change_username(cur_uname, candidate_uname, candidate_fname)
+        if ok:
+            user["username"] = candidate_uname
+            if candidate_fname:
+                user["full_name"] = " ".join(candidate_fname.split())
+            try:
+                page.client_storage.set("ugstack_pref_user", sessions.sign_user_backup(user))
+            except Exception:
+                pass
+            page.dialog.open = False
+            page.show_snack(text)
+            if on_done:
+                on_done()
+            page.update()
+        else:
+            msg.value = text
+            page.update()
+
+    uname_tf.on_submit = save
+    fname_tf.on_submit = save
+    page.dialog = ft.AlertDialog(
+        modal=True,
+        shape=ft.RoundedRectangleBorder(radius=16),
+        title=ft.Text("Ubah Username", weight=ft.FontWeight.BOLD),
+        content=ft.Container(
+            width=width,
+            content=ft.Column(
+                [
+                    ft.Text("Pilih username panggilan Anda agar tampil di sapaan Dasbor.", size=13),
+                    uname_tf,
+                    fname_tf,
+                    msg,
+                ],
+                tight=True,
+                spacing=10,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+        ),
+        actions=[
+            ft.TextButton("Batal", on_click=lambda e: (setattr(page.dialog, "open", False), page.update())),
+            ft.ElevatedButton("Simpan", bgcolor=GREEN, color=ft.colors.WHITE, on_click=save),
+        ],
+    )
+    page.dialog.open = True
+    page.update()
+
+
 def open_change_avatar(page: ft.Page, user: dict, on_done=None):
     """Dialog unggah / ganti foto profil (mendukung FilePicker lokal, URL gambar, dan avatar preset)."""
     current_avatar = user.get("avatar") or auth.get_avatar(user["username"])

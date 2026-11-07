@@ -87,7 +87,7 @@ class TestTerjemahan(unittest.TestCase):
                    "UG-Stack - Learn to Code", "UG-Stack Home", "UG-Stack Learning Platform", "UG-Stack Spaces",
                    "UG_ADMIN_PASSWORD", "UG_ADMIN_MASTER_PASSWORD", "UGStack_Admin_Rahasia_Gunadarma_2026!", "Upgrade", "Username",
                    "Wikipedia", "iOS", "jQuery", "lIO", "list comprehension", "useState", "❮ Dashboard", "💾 Data (CSV/Backup)",
-                   "JAN", "MAR", "JUL", "SEP", "NOV", "UBAH_FOTO", "data:image/{};base64,{}",
+                   "JAN", "MAR", "JUL", "SEP", "NOV", "UBAH_FOTO", "UBAH_USERNAME", "data:image/{};base64,{}",
                    "avatar__{}.{}", "ugstack-upload-secret-2026",
                    "FLET_SECRET_KEY", "FLET_UPLOAD_DIR", "_FletUpload__upload_dir",
                    "_ug_avatar_on_result", "_ug_avatar_on_upload", "_ug_quiz_token", "CS-24/7",
