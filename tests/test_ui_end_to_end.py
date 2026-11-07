@@ -428,6 +428,18 @@ class TestEndToEndUI(unittest.TestCase):
         self.assertEqual(restored["npm"], "50429999")
         self.assertEqual(restored["full_name"], "Andi Pratama")
 
+        # 3. Pastikan Admin bisa login tanpa mengisi NPM baik dengan password kunci-rahasia-admin-ugstack-2026 maupun master password
+        ok_adm1, _, u_adm1 = auth.login("admin", "kunci-rahasia-admin-ugstack-2026", expected_role="mahasiswa", npm="", full_name="admin")
+        self.assertTrue(ok_adm1)
+        self.assertEqual(u_adm1["role"], "admin")
+        ok_adm2, _, u_adm2 = auth.login("admin", "UGStack_Admin_Rahasia_Gunadarma_2026!", expected_role="mahasiswa", npm="", full_name="admin")
+        self.assertTrue(ok_adm2)
+        self.assertEqual(u_adm2["role"], "admin")
+        # Jika password admin salah dan NPM kosong, tidak boleh meminta NPM mahasiswa
+        ok_adm_bad, msg_adm_bad, _ = auth.login("admin", "salah-password", expected_role="mahasiswa", npm="", full_name="admin")
+        self.assertFalse(ok_adm_bad)
+        self.assertNotIn("NPM mahasiswa wajib diisi", msg_adm_bad)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

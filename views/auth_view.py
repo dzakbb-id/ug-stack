@@ -70,6 +70,20 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
                            border_radius=8, visible=not is_login)
     message = ft.Text("", size=13, color=ft.colors.RED_700)
 
+    def _on_name_change(e=None):
+        if not (is_login and is_mhs):
+            return
+        val = (full_name_field.value or "").strip().lower()
+        want_npm = val not in ("admin", "ugstack_admin_utama")
+        if npm_field.visible != want_npm:
+            npm_field.visible = want_npm
+            try:
+                page.update()
+            except Exception:
+                pass
+
+    full_name_field.on_change = _on_name_change
+
     def show_error(text):
         message.value = text
         page.update()
@@ -77,12 +91,14 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
     def submit(e=None):
         if is_login:
             if is_mhs:
+                raw_name = (full_name_field.value or "").strip()
+                raw_npm = (npm_field.value or "").strip()
                 ok, msg, user = auth.login(
-                    npm_field.value,
+                    raw_npm or raw_name,
                     password.value,
                     expected_role="mahasiswa",
-                    npm=npm_field.value,
-                    full_name=full_name_field.value,
+                    npm=raw_npm,
+                    full_name=raw_name,
                 )
             else:
                 ok, msg, user = auth.login(username.value, password.value, expected_role=role)
