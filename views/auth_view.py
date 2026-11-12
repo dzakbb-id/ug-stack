@@ -39,6 +39,128 @@ def open_admin_entry(page: ft.Page, on_login_success):
     page.update()
 
 
+def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial_name: str = "", initial_id: str = ""):
+    """Dialog Lupa Password untuk Mahasiswa dan Dosen; mengirim tiket & email ke zetheron.id@gmail.com."""
+    init_role = default_role if default_role in ("mahasiswa", "dosen") else "mahasiswa"
+    role_dd = ft.Dropdown(
+        label="Peran Akun",
+        value=init_role,
+        border_radius=8,
+        options=[
+            ft.dropdown.Option("mahasiswa", "🎓 Mahasiswa"),
+            ft.dropdown.Option("dosen", "👨‍🏫 Dosen"),
+        ],
+    )
+    name_tf = ft.TextField(
+        label="Nama Lengkap (wajib bagi Mahasiswa)",
+        value=initial_name,
+        border_radius=8,
+    )
+    id_tf = ft.TextField(
+        label="NPM / Username (Mahasiswa) atau Username / NIDN (Dosen)",
+        value=initial_id,
+        border_radius=8,
+    )
+    email_tf = ft.TextField(
+        label="Email Aktif Anda (untuk menerima password baru)",
+        border_radius=8,
+    )
+    reason_tf = ft.TextField(
+        label="Keterangan Tambahan (opsional)",
+        value="Saya lupa password akun UGStack, mohon bantuan reset password.",
+        multiline=True,
+        min_lines=2,
+        max_lines=3,
+        border_radius=8,
+    )
+    feedback = ft.Text("", size=13, color=ft.colors.RED_700)
+    action_box = ft.Column([], spacing=6, visible=False)
+    width = max(260, min(430, (page.width or 450) - 60))
+
+    def _open_mailto(url: str):
+        try:
+            if hasattr(page, "launch_url"):
+                page.launch_url(url)
+        except Exception:
+            pass
+
+    def _copy_support_email(e=None):
+        try:
+            page.set_clipboard(auth.SUPPORT_EMAIL)
+        except Exception:
+            pass
+        page.show_snack("Alamat email zetheron.id@gmail.com disalin ke clipboard.")
+
+    def submit_reset(e=None):
+        ok, msg, rec = auth.request_password_reset(
+            role=role_dd.value or "mahasiswa",
+            identifier=id_tf.value or "",
+            full_name=name_tf.value or "",
+            email=email_tf.value or "",
+            reason=reason_tf.value or "",
+        )
+        if not ok:
+            feedback.color = ft.colors.RED_700
+            feedback.value = msg
+            action_box.visible = False
+            page.update()
+            return
+        feedback.color = GREEN
+        feedback.value = f"{msg} (Tiket #{rec['id']})"
+        mailto_url = rec.get("mailto_url") or auth.build_reset_mailto(rec)
+        action_box.controls = [
+            ft.ElevatedButton(
+                "📧 Kirim via Aplikasi Email (zetheron.id@gmail.com)",
+                bgcolor=GREEN,
+                color=ft.colors.WHITE,
+                on_click=lambda ev, u=mailto_url: _open_mailto(u),
+            ),
+            ft.OutlinedButton(
+                "Salin Email zetheron.id@gmail.com",
+                icon=ft.icons.COPY,
+                on_click=_copy_support_email,
+            ),
+        ]
+        action_box.visible = True
+        page.show_snack(msg)
+        page.update()
+
+    submit_btn = ft.ElevatedButton("Kirim Permintaan Reset", bgcolor=GREEN, color=ft.colors.WHITE, on_click=submit_reset)
+    page.dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("🔑 Lupa Password"),
+        content=ft.Container(
+            width=width,
+            content=ft.Column(
+                [
+                    ft.Text(
+                        "Mahasiswa atau Dosen yang lupa password dapat mengajukan reset password. "
+                        "Pesan permintaan akan diteruskan ke email dukungan resmi zetheron.id@gmail.com dan Panel Admin.",
+                        size=12,
+                        color=ft.colors.ON_SURFACE_VARIANT,
+                    ),
+                    role_dd,
+                    name_tf,
+                    id_tf,
+                    email_tf,
+                    reason_tf,
+                    feedback,
+                    action_box,
+                ],
+                tight=True,
+                spacing=10,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+        ),
+        actions=[
+            ft.TextButton("Tutup", on_click=lambda e: (setattr(page.dialog, "open", False), page.update())),
+            submit_btn,
+        ],
+    )
+    page.dialog.open = True
+    page.update()
+
+
 def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_success=None, on_switch_mode=None, on_back=None):
     """mode: login/register. role: mahasiswa/dosen. Pendaftaran mandiri hanya untuk mahasiswa. Admin tidak ditampilkan di sini."""
     if role not in ("mahasiswa", "dosen"):
@@ -142,6 +264,18 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
     title_text = {"mahasiswa": "Login Mahasiswa", "dosen": "Login Dosen"}[role] if is_login else "Daftar Akun Mahasiswa"
     can_register = role == "mahasiswa" and settings.registration_open()
     switch_controls = []
+    if is_login:
+        switch_controls.append(
+            ft.TextButton(
+                "🔑 Lupa password?",
+                on_click=lambda e: open_forgot_password(
+                    page,
+                    default_role=role,
+                    initial_name=(full_name_field.value or "").strip() if is_mhs else "",
+                    initial_id=((npm_field.value or "").strip() if is_mhs else (username.value or "").strip()),
+                ),
+            )
+        )
     if role == "mahasiswa" and is_login:
         switch_controls.append(ft.TextButton("Belum punya akun? Daftar", visible=can_register,
                                              on_click=lambda e: on_switch_mode("register", "mahasiswa") if on_switch_mode else None))

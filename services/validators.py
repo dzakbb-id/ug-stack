@@ -4,6 +4,7 @@ import re
 BAHASA = ["HTML", "CSS", "JavaScript", "Python", "SQL", "PHP", "Java", "C++", "C#", "React", "MySQL"]
 LEVELS = ["Beginner", "Intermediate", "Advanced"]
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{4,20}$")
+_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 
 def validate_username(username: str):
@@ -11,6 +12,15 @@ def validate_username(username: str):
         return False, "Username tidak boleh kosong."
     if not _USERNAME_RE.match(username.strip()):
         return False, "Username 4-20 karakter: huruf, angka, atau underscore."
+    return True, ""
+
+
+def validate_email(email: str):
+    clean = (email or "").strip()
+    if not clean:
+        return False, "Email wajib diisi untuk menerima balasan password."
+    if len(clean) > 100 or not _EMAIL_RE.match(clean):
+        return False, "Format email tidak valid (contoh: nama@student.gunadarma.ac.id)."
     return True, ""
 
 

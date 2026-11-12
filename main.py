@@ -174,8 +174,14 @@ def main(page: ft.Page):
         render()
 
     def go_back():
+        check_session()
         if state["history"]:
             state["view"], state["args"] = state["history"].pop()
+            try:
+                import json as _json
+                save_pref("view", _json.dumps({"view": state["view"], "args": {k: v for k, v in state["args"].items() if isinstance(v, (str, int))}}))
+            except Exception:
+                pass
             render()
         else:
             go("home")
@@ -348,6 +354,8 @@ def main(page: ft.Page):
             show_snack("Halaman ini hanya untuk admin atau dosen.")
         state["mobile"] = is_mobile()
         args = state["args"]
+        if view != "quiz":
+            page._ug_quiz_token = None
         page._ug_pending = []
         lang = state["lang"]
         content = build_content(view, args)

@@ -60,6 +60,7 @@ class FakePage:
         self.route = ""
         self.on_resize = None
         self.clipboard = ""
+        self.launched_url = ""
         self._ug_pending = []
 
     def add(self, *controls):
@@ -70,6 +71,9 @@ class FakePage:
 
     def set_clipboard(self, text):
         self.clipboard = text
+
+    def launch_url(self, url, *args, **kwargs):
+        self.launched_url = url
 
     def scroll_to(self, **kwargs):
         pass
@@ -455,6 +459,123 @@ class TestEndToEndUI(unittest.TestCase):
         self.assertTrue(ok_clr)
         remaining = auth.list_users(u_adm1)
         self.assertEqual([u["username"] for u in remaining], ["admin"])
+
+    def test_T79_lupa_password_mahasiswa_dan_dosen_ke_email_zetheron(self):
+        """Uji fitur Lupa Password untuk Mahasiswa dan Dosen yang mengirim pesan ke zetheron.id@gmail.com serta diproses di Panel Admin."""
+        orig_run_pending = main.run_pending
+        main.run_pending = lambda page: [fn() for fn in getattr(page, "_ug_pending", [])]
+        try:
+            page = FakePage(width=1280)
+            main.main(page)
+
+            admin_actor = {"username": "admin", "role": "admin"}
+            auth.register("50421888", "Rahasia123", "Rahasia123", npm="50421888", full_name="Rina Kartika", require_identity=True)
+            auth.create_user(admin_actor, "dosen_bambang", "dosen", "DosenPass123")
+
+            # 1. Buka halaman Login -> klik tombol "🔑 Lupa password?" untuk Mahasiswa
+            login_btns = find_buttons(page.appbar, "Masuk")
+            login_btns[0].on_click(DummyEvent(login_btns[0]))
+            forgot_btns = find_buttons(page.controls[1], "Lupa password")
+            self.assertTrue(forgot_btns, "Tombol Lupa password? harus tersedia di halaman Login")
+            forgot_btns[0].on_click(DummyEvent(forgot_btns[0]))
+            self.assertIsNotNone(page.dialog)
+            self.assertTrue(page.dialog.open)
+
+            dlg_tfs = [c for c in walk_controls(page.dialog) if isinstance(c, ft.TextField)]
+            self.assertEqual(len(dlg_tfs), 4)
+            dlg_tfs[0].value = "Rina Kartika"
+            dlg_tfs[1].value = "50421888"
+            dlg_tfs[2].value = "rina@student.gunadarma.ac.id"
+            dlg_tfs[3].value = "Mohon reset password mahasiswa saya."
+            submit_reset_btns = find_buttons(page.dialog, "Kirim Permintaan Reset")
+            self.assertTrue(submit_reset_btns)
+            submit_reset_btns[0].on_click(DummyEvent(submit_reset_btns[0]))
+
+            # Pastikan tombol Kirim via Aplikasi Email (zetheron.id@gmail.com) muncul dan membuka mailto:zetheron.id@gmail.com
+            mailto_btns = find_buttons(page.dialog, "zetheron.id@gmail.com")
+            self.assertTrue(mailto_btns)
+            mailto_btns[0].on_click(DummyEvent(mailto_btns[0]))
+            self.assertTrue(page.launched_url.startswith("mailto:zetheron.id@gmail.com?"))
+            self.assertIn("50421888", page.launched_url)
+
+            # 2. Ajukan Lupa Password untuk Dosen
+            ok_dsn, msg_dsn, rec_dsn = auth.request_password_reset(
+                role="dosen",
+                identifier="dosen_bambang",
+                full_name="Dr Bambang",
+                email="bambang@staff.gunadarma.ac.id",
+                reason="Lupa password akun dosen",
+            )
+            self.assertTrue(ok_dsn, msg_dsn)
+            self.assertEqual(rec_dsn["to_email"], "zetheron.id@gmail.com")
+            self.assertIn("zetheron.id@gmail.com", rec_dsn["mailto_url"])
+
+            # Pastikan tercatat di daftar permintaan lupa password Admin
+            reqs = auth.list_password_resets(admin_actor)
+            self.assertEqual(len(reqs), 2)
+            self.assertEqual({r["role"] for r in reqs}, {"mahasiswa", "dosen"})
+
+            # 3. Login sebagai Admin, buka tab Pengguna, dan klik "Proses & Reset Password"
+            tfs = [c for c in walk_controls(page.controls[1]) if isinstance(c, ft.TextField) and getattr(c, "visible", True) is not False]
+            for tf in tfs:
+                if getattr(tf, "password", False):
+                    tf.value = "UGStack_Admin_Rahasia_Gunadarma_2026!"
+                else:
+                    tf.value = "admin"
+            submit_btns = [b for b in find_buttons(page.controls[1], "Masuk") if isinstance(b, ft.ElevatedButton)]
+            submit_btns[0].on_click(DummyEvent(submit_btns[0]))
+
+            user_tab_btns = find_buttons(page.controls[1], "Pengguna")
+            user_tab_btns[0].on_click(DummyEvent(user_tab_btns[0]))
+            proc_btns = find_buttons(page.controls[1], "Proses & Reset Password")
+            self.assertGreaterEqual(len(proc_btns), 2)
+            proc_btns[0].on_click(DummyEvent(proc_btns[0]))
+            temp_pw_dsn = page.clipboard
+            self.assertTrue(len(temp_pw_dsn) >= 8)
+
+            # Dosen dapat login dengan password sementara hasil reset
+            ok_login_dsn, _, u_dsn = auth.login("dosen_bambang", temp_pw_dsn, expected_role="dosen")
+            self.assertTrue(ok_login_dsn)
+            self.assertTrue(u_dsn["must_change"])
+        finally:
+            main.run_pending = orig_run_pending
+
+    def test_T80_perbaikan_bug_keamanan_dan_simulator(self):
+        """Uji perbaikan bug: buka kunci otomatis saat reset password, username terlarang, simulator SQL/JS, dan admin_code CLI."""
+        from services import simulator
+        from tools import admin_code as admin_code_cli
+
+        admin_actor = {"username": "admin", "role": "admin"}
+
+        # 1. Reserved usernames tidak boleh didaftarkan oleh mahasiswa
+        ok_res1, _ = auth.register("ugstack_admin_utama", "Rahasia123", "Rahasia123")
+        self.assertFalse(ok_res1)
+        ok_res2, _ = auth.register("bot_ugstack", "Rahasia123", "Rahasia123")
+        self.assertFalse(ok_res2)
+
+        # 2. Akun yang terkunci setelah 3x gagal login langsung terbuka saat di-reset password oleh admin
+        auth.register("mhs_kunci", "Rahasia123", "Rahasia123")
+        for _ in range(auth.MAX_ATTEMPTS):
+            auth.login("mhs_kunci", "SalahTerus123")
+        ok_locked, msg_locked, _ = auth.login("mhs_kunci", "Rahasia123")
+        self.assertFalse(ok_locked)
+        self.assertIn("terkunci", msg_locked)
+
+        ok_rst, _ = auth.reset_password(admin_actor, "MHS_KUNCI", "BaruAman123")
+        self.assertTrue(ok_rst)
+        ok_unlocked, _, _ = auth.login("mhs_kunci", "BaruAman123")
+        self.assertTrue(ok_unlocked)
+
+        # 3. Simulator SQL tahan terhadap perbandingan kolom numerik vs teks tanpa TypeError
+        sql_out = simulator.run_sql_safe("SELECT * FROM mahasiswa WHERE ipk > 'bukan_angka';")
+        self.assertIn("0 baris ditemukan", sql_out)
+
+        # 4. Simulator JS tahan terhadap template literal dengan variabel yang belum didefinisikan
+        js_out = simulator.run_code("JavaScript", "console.log(`Halo ${variabelBelumAda}`);")
+        self.assertIn("Halo variabelBelumAda", js_out)
+
+        # 5. tools/admin_code.py memastikan secret tersedia
+        self.assertIsNotNone(admin_code_cli.admin_code.get_secret())
 
 
 if __name__ == "__main__":

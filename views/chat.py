@@ -4,6 +4,7 @@ from components.dashboard_theme import user_avatar_badge
 from components.i18n_ui import translate_tree
 from components.ui import GREEN, card, chip, green_button, pad, page_banner, section_heading
 from services import auth, chat, roles
+from views.auth_view import open_forgot_password
 
 CHANNEL_META = [
     ("umum", "🎧 Layanan CS & Akun"),
@@ -194,6 +195,7 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
     quick_faq = ft.Row(
         [
             ft.OutlinedButton("🔑 Bantuan Login & NPM", on_click=lambda e: send(text="@bot Bagaimana cara login dengan nama lengkap dan NPM?")),
+            ft.OutlinedButton("📧 Lupa Password", on_click=lambda e: open_forgot_password(page)),
             ft.OutlinedButton("🏅 Cara Dapat Sertifikat", on_click=lambda e: send(text="@bot Bagaimana cara mendapatkan sertifikat?")),
             ft.OutlinedButton("⏱️ Aturan Waktu Quiz", on_click=lambda e: send(text="@bot Berapa lama waktu pengerjaan quiz?")),
             ft.OutlinedButton("📷 Cara Upload Foto", on_click=lambda e: send(text="@bot Bagaimana cara mengubah foto profil?")),

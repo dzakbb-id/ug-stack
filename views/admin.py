@@ -430,9 +430,100 @@ def _tab_users(page, user, mobile, refresh):
                 _dark_outlined_btn("Hapus", delete, disabled=is_self),
             ], wrap=True, spacing=8, run_spacing=6, vertical_alignment=ft.CrossAxisAlignment.CENTER),
         ], spacing=10), padding=16))
+
+    reset_reqs = auth.list_password_resets(user)
+    reset_cards = []
+    for req in reset_reqs:
+        req_id = req.get("id")
+        is_done = req.get("status") == "selesai"
+
+        def resolve_req(e, rid=req_id):
+            ok, msg, res = auth.resolve_password_reset(user, rid)
+            if not ok:
+                page.show_snack(msg)
+                return
+            temp_pw = res.get("temp_password", "")
+            reply_url = res.get("reply_mailto", "")
+            try:
+                page.set_clipboard(temp_pw)
+            except Exception:
+                pass
+            page.show_snack(f"{msg} Password sementara: {temp_pw}")
+
+            def _launch_reply(ev=None, u=reply_url):
+                try:
+                    if hasattr(page, "launch_url"):
+                        page.launch_url(u)
+                except Exception:
+                    pass
+
+            _dialog(
+                page,
+                f"Password Sementara #{rid}",
+                ft.Column(
+                    [
+                        ft.Text(msg, size=13),
+                        ft.Text(f"Password Sementara: {temp_pw}", size=15, weight=ft.FontWeight.BOLD, selectable=True, color=GREEN),
+                        ft.Text(f"Email Pemohon: {res.get('email', '-')}", size=12, selectable=True),
+                    ],
+                    tight=True,
+                    spacing=8,
+                ),
+                [
+                    ft.ElevatedButton("📧 Balas Email ke Pengguna", bgcolor=GREEN, color=ft.colors.WHITE, on_click=_launch_reply),
+                    ft.TextButton("Tutup", on_click=lambda e2: (_close(page), refresh())),
+                ],
+            )
+
+        status_chip = chip("SELESAI", "#D1FAE5") if is_done else chip("MENUNGGU", "#FEF3C7")
+        reset_cards.append(
+            glass_card(
+                ft.Column(
+                    [
+                        ft.Row(
+                            [
+                                ft.Text(f"#{req_id} • {req.get('full_name') or req.get('identifier', '-')}", size=14, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                                chip(str(req.get("role", "mahasiswa")).upper()),
+                                status_chip,
+                                ft.Text(f"→ {req.get('to_email', auth.SUPPORT_EMAIL)}", size=12, color=TEXT_MUTED),
+                            ],
+                            wrap=True,
+                            spacing=8,
+                        ),
+                        ft.Text(
+                            f"Identitas: {req.get('identifier', '-')} | Email Pemohon: {req.get('email', '-')} | Waktu: {str(req.get('created_at', ''))[:16].replace('T', ' ')}",
+                            size=12,
+                            color=TEXT_MUTED,
+                        ),
+                        ft.Text(f"Keterangan: {req.get('reason', '-')}", size=12, color=TEXT_PRIMARY),
+                        ft.Row(
+                            [
+                                _dark_outlined_btn("Proses & Reset Password", resolve_req, disabled=is_done),
+                            ],
+                            spacing=8,
+                        ),
+                    ],
+                    spacing=6,
+                ),
+                padding=14,
+            )
+        )
+
+    reset_section = glass_card(
+        ft.Column(
+            [
+                ft.Text(f"🔑 Permintaan Lupa Password ({auth.SUPPORT_EMAIL}) — {len(reset_reqs)} tiket", size=15, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                *(reset_cards if reset_cards else [ft.Text("Belum ada permintaan lupa password.", size=13, color=TEXT_MUTED)]),
+            ],
+            spacing=10,
+        ),
+        padding=16,
+    )
+
     return ft.Column([
         _dark_heading("Pengaturan"),
         glass_card(reg_switch, padding=16),
+        reset_section,
         user_table,
         _dark_heading(f"Daftar akun ({len(rows)})"),
         *rows,

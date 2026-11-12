@@ -7,9 +7,10 @@ from .roles import is_admin
 from .storage import StorageError
 
 DATA_FILES = ["users.json", "modules.json", "progress.json", "scores.json", "quiz_custom.json",
-              "enrollments.json", "settings.json", "activity_log.json"]
+              "enrollments.json", "settings.json", "activity_log.json", "chat_messages.json", "password_resets.json"]
 _DEFAULTS = {"users.json": [], "modules.json": modules.SEED_MODULES, "progress.json": {}, "scores.json": {},
-             "quiz_custom.json": {}, "enrollments.json": {}, "settings.json": {}, "activity_log.json": []}
+             "quiz_custom.json": {}, "enrollments.json": {}, "settings.json": {}, "activity_log.json": [],
+             "chat_messages.json": [], "password_resets.json": []}
 _EXPECTED = {n: (list if isinstance(d, list) else dict) for n, d in _DEFAULTS.items()}
 PREFIX, SUFFIX, KEEP = "backup_", ".json", 10
 _NAME_RE = re.compile(r"^\d{8}_\d{6}$")

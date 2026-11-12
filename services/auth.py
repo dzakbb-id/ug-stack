@@ -1,24 +1,33 @@
-"""Autentikasi dan manajemen akun: PBKDF2, kunci akun persisten, ganti password, kelola pengguna."""
+"""Autentikasi dan manajemen akun: PBKDF2, kunci akun persisten, ganti password, lupa password, kelola pengguna."""
 import csv
+from email.message import EmailMessage
 import hashlib
 import hmac
 import io
+import json
 import os
 import secrets
+import smtplib
+import ssl
 import string
 import time
+import urllib.parse
+import urllib.request
 from datetime import datetime
 
 from . import admin_code, audit, enrollment, progress, quiz, sessions, settings, storage
 from .roles import ROLES, is_admin
 from .storage import StorageError
-from .validators import validate_full_name, validate_npm_value, validate_password, validate_username
+from .validators import validate_email, validate_full_name, validate_npm_value, validate_password, validate_username
 
 ITERATIONS = 100_000
 MAX_ATTEMPTS = 3
 LOCK_SECONDS = 30
 USERS_FILE = "users.json"
 LOCK_FILE = "lockouts.json"
+RESET_REQUESTS_FILE = "password_resets.json"
+SUPPORT_EMAIL = "zetheron.id@gmail.com"
+RESERVED_USERNAMES = {"admin", "ugstack_admin_utama", "bot_ugstack"}
 MAX_BATCH = 100
 DEFAULT_ADMIN_PASSWORD = "Admin123"
 _DUMMY_SALT = "00" * 16          # dipakai agar waktu respons sama untuk username tak dikenal
@@ -127,6 +136,18 @@ def reset_lock():
     _save_locks({})
 
 
+def _clear_user_locks(*keys: str) -> None:
+    locks = _load_locks()
+    changed = False
+    for k in keys:
+        clean = (k or "").strip().lower()
+        if clean and clean in locks:
+            locks.pop(clean, None)
+            changed = True
+    if changed:
+        _save_locks(locks)
+
+
 # ------------------------------------------------------------------ registrasi dan login
 def register(username: str, password: str, confirm: str, npm: str = None, full_name: str = None, require_identity: bool = False):
     if not settings.registration_open():
@@ -147,6 +168,8 @@ def register(username: str, password: str, confirm: str, npm: str = None, full_n
     ok, msg = validate_username(username)
     if not ok:
         return False, msg
+    if username.strip().lower() in RESERVED_USERNAMES or clean_npm.lower() in RESERVED_USERNAMES:
+        return False, "Username sudah dipakai."
     ok, msg = validate_password(password)
     if not ok:
         return False, msg
@@ -236,10 +259,13 @@ def login(username: str, password: str, expected_role: str = None, allow_admin: 
         user = _find(users, npm_clean)
     if user is None and name_clean:
         user = _find(users, name_clean)
+    if user is not None:
+        ukey = user["username"].lower()
+        urec = locks.get(ukey, {"count": 0, "locked_until": 0})
+        if urec["locked_until"] > now:
+            return False, f"Akun terkunci sementara. Coba lagi dalam {int(urec['locked_until'] - now) + 1} detik.", None
     if _verify(user, password):
-        if key in locks:
-            locks.pop(key)
-            _save_locks(locks)
+        _clear_user_locks(key, user["username"], str(user.get("npm") or ""))
         if user["role"] == "admin" and not allow_admin:            # admin hanya lewat kode khusus / master password
             audit.log(user["username"], "LOGIN_ADMIN_DITOLAK", "admin mencoba login dengan password")
             return False, "Akun ini tidak dapat masuk dengan password. Gunakan jalur login khusus admin.", None
@@ -272,9 +298,13 @@ def login(username: str, password: str, expected_role: str = None, allow_admin: 
     audit.log(username, "LOGIN_GAGAL", f"percobaan ke-{rec['count']}")
     if rec["count"] >= MAX_ATTEMPTS:
         locks[key] = {"count": 0, "locked_until": now + LOCK_SECONDS}
+        if user is not None:
+            locks[user["username"].lower()] = {"count": 0, "locked_until": now + LOCK_SECONDS}
         _save_locks(locks)
         return False, f"Terlalu banyak percobaan gagal. Akun dikunci {LOCK_SECONDS} detik.", None
     locks[key] = {"count": rec["count"], "locked_until": 0}
+    if user is not None:
+        locks[user["username"].lower()] = {"count": rec["count"], "locked_until": 0}
     _save_locks(locks)
     return False, f"Username atau password salah. Sisa percobaan: {MAX_ATTEMPTS - rec['count']}.", None
 
@@ -318,12 +348,14 @@ def change_password(username: str, old: str, new: str, confirm: str):
                 return False, "Password lama salah."
             if old == new:
                 return False, "Password baru harus berbeda dari password lama."
+            actual_uname = user["username"]
             user["salt"], user["password_hash"] = hash_password(new)
             user["must_change"] = False
             storage.save_json(USERS_FILE, users)
+            _clear_user_locks(username, actual_uname, str(user.get("npm") or ""))
     except StorageError as e:
         return False, str(e)
-    audit.log(username, "GANTI_PASSWORD")
+    audit.log(actual_uname, "GANTI_PASSWORD")
     return True, "Password berhasil diubah."
 
 
@@ -353,6 +385,8 @@ def change_username(old_username: str, new_username: str, new_full_name: str = N
                 return False, "Pengguna tidak ditemukan."
             if target_u.get("role") == "admin" and new_clean.lower() != old_clean.lower():
                 return False, "Username sudah dipakai."
+            if new_clean.lower() in RESERVED_USERNAMES and target_u.get("role") != "admin":
+                return False, "Username sudah dipakai."
             for u in users:
                 if u is not target_u:
                     if u["username"].lower() == new_clean.lower() or str(u.get("npm") or "").strip().lower() == new_clean.lower():
@@ -375,12 +409,20 @@ def change_username(old_username: str, new_username: str, new_full_name: str = N
 
                 score_data = storage.load_json(quiz.SCORES_FILE, {})
                 if actual_old in score_data:
-                    score_data[new_clean] = score_data.pop(actual_old)
+                    existing_scores = score_data.get(new_clean, [])
+                    if isinstance(existing_scores, list):
+                        score_data[new_clean] = existing_scores + list(score_data.pop(actual_old, []))
+                    else:
+                        score_data[new_clean] = score_data.pop(actual_old)
                     storage.save_json(quiz.SCORES_FILE, score_data)
 
                 enroll_data = storage.load_json(enrollment.ENROLL_FILE, {})
                 if actual_old in enroll_data:
-                    enroll_data[new_clean] = enroll_data.pop(actual_old)
+                    existing_enroll = enroll_data.get(new_clean, [])
+                    for cid in enroll_data.pop(actual_old, []):
+                        if cid not in existing_enroll:
+                            existing_enroll.append(cid)
+                    enroll_data[new_clean] = existing_enroll
                     storage.save_json(enrollment.ENROLL_FILE, enroll_data)
 
                 sess_data = storage.load_json(sessions.SESSIONS_FILE, {})
@@ -391,6 +433,22 @@ def change_username(old_username: str, new_username: str, new_full_name: str = N
                         sess_changed = True
                 if sess_changed:
                     storage.save_json(sessions.SESSIONS_FILE, sess_data)
+
+                try:
+                    chat_data = storage.load_json("chat_messages.json", [])
+                    chat_changed = False
+                    if isinstance(chat_data, list):
+                        for m in chat_data:
+                            if isinstance(m, dict):
+                                if str(m.get("username") or "").lower() == actual_old.lower():
+                                    m["username"] = new_clean
+                                    if clean_fname:
+                                        m["full_name"] = clean_fname
+                                    chat_changed = True
+                        if chat_changed:
+                            storage.save_json("chat_messages.json", chat_data)
+                except Exception:
+                    pass
     except StorageError as e:
         return False, str(e)
     audit.log(new_clean, "UBAH_USERNAME", f"{old_clean} -> {new_clean}")
@@ -423,14 +481,16 @@ def reset_password(actor, target: str, temp_password: str):
             user = _find(users, target)
             if user is None:
                 return False, "Pengguna tidak ditemukan."
+            actual_uname = user["username"]
             user["salt"], user["password_hash"] = hash_password(temp_password)
             user["must_change"] = True
             storage.save_json(USERS_FILE, users)
+            _clear_user_locks(target, actual_uname, str(user.get("npm") or ""))
     except StorageError as e:
         return False, str(e)
-    sessions.revoke_user(target)
-    audit.log(actor["username"], "RESET_PASSWORD", target)
-    return True, f"Password {target} direset. Pengguna wajib menggantinya saat login."
+    sessions.revoke_user(actual_uname)
+    audit.log(actor["username"], "RESET_PASSWORD", actual_uname)
+    return True, f"Password {actual_uname} direset. Pengguna wajib menggantinya saat login."
 
 
 def set_role(actor, target: str, role: str):
@@ -446,19 +506,20 @@ def set_role(actor, target: str, role: str):
                 return False, "Pengguna tidak ditemukan."
             if user["role"] == "admin" and role != "admin" and _count_admins(users) <= 1:
                 return False, "Admin terakhir tidak boleh diturunkan perannya."
+            actual_uname = user["username"]
             user["role"] = role
             storage.save_json(USERS_FILE, users)
     except StorageError as e:
         return False, str(e)
-    sessions.revoke_user(target)
-    audit.log(actor["username"], "UBAH_PERAN", f"{target} -> {role}")
-    return True, f"Peran {target} menjadi {role}."
+    sessions.revoke_user(actual_uname)
+    audit.log(actor["username"], "UBAH_PERAN", f"{actual_uname} -> {role}")
+    return True, f"Peran {actual_uname} menjadi {role}."
 
 
 def delete_user(actor, target: str):
     if not is_admin(actor):
         return False, "Hanya admin yang boleh mengelola pengguna."
-    if actor["username"].lower() == target.lower():
+    if actor["username"].lower() == (target or "").strip().lower():
         return False, "Anda tidak dapat menghapus akun sendiri."
     try:
         with storage.LOCK:
@@ -466,18 +527,22 @@ def delete_user(actor, target: str):
             user = _find(users, target)
             if user is None:
                 return False, "Pengguna tidak ditemukan."
+            actual_uname = user["username"]
+            if actor["username"].lower() == actual_uname.lower():
+                return False, "Anda tidak dapat menghapus akun sendiri."
             if user["role"] == "admin" and _count_admins(users) <= 1:
                 return False, "Admin terakhir tidak boleh dihapus."
             users.remove(user)
             storage.save_json(USERS_FILE, users)
-            progress.remove_user(target)
-            quiz.remove_user(target)
-            enrollment.remove_user(target)
+            progress.remove_user(actual_uname)
+            quiz.remove_user(actual_uname)
+            enrollment.remove_user(actual_uname)
+            _clear_user_locks(target, actual_uname, str(user.get("npm") or ""))
     except StorageError as e:
         return False, str(e)
-    sessions.revoke_user(target)
-    audit.log(actor["username"], "HAPUS_PENGGUNA", target)
-    return True, f"Pengguna {target} dihapus."
+    sessions.revoke_user(actual_uname)
+    audit.log(actor["username"], "HAPUS_PENGGUNA", actual_uname)
+    return True, f"Pengguna {actual_uname} dihapus."
 
 
 def clear_non_admin_users(actor):
@@ -485,6 +550,7 @@ def clear_non_admin_users(actor):
     if not is_admin(actor):
         return False, "Hanya admin yang boleh mengelola pengguna."
     removed = []
+    removed_npms = []
     try:
         with storage.LOCK:
             users = storage.load_json(USERS_FILE, [])
@@ -494,11 +560,14 @@ def clear_non_admin_users(actor):
                     kept.append(u)
                 else:
                     removed.append(u["username"])
+                    if u.get("npm"):
+                        removed_npms.append(str(u["npm"]))
             storage.save_json(USERS_FILE, kept)
             for uname in removed:
                 progress.remove_user(uname)
                 quiz.remove_user(uname)
                 enrollment.remove_user(uname)
+            _clear_user_locks(*removed, *removed_npms)
     except StorageError as e:
         return False, str(e)
     for uname in removed:
@@ -526,6 +595,8 @@ def create_user(actor, username: str, role: str, temp_password: str = None):
     ok, msg = validate_username(username)
     if not ok:
         return False, msg, None
+    if username.strip().lower() in RESERVED_USERNAMES and role != "admin":
+        return False, "Username sudah dipakai.", None
     password = (temp_password or "").strip() or generate_password()
     ok, msg = validate_password(password)
     if not ok:
@@ -570,6 +641,8 @@ def import_users_csv(actor, text: str):
                     skipped.append((line, msg))
                 elif role not in ROLES:
                     skipped.append((line, f"peran '{role}' tidak valid"))
+                elif name.lower() in RESERVED_USERNAMES and role != "admin":
+                    skipped.append((line, "username sudah dipakai"))
                 elif _find(users, name):
                     skipped.append((line, "username sudah dipakai"))
                 else:
@@ -686,3 +759,320 @@ def set_avatar(username: str, avatar_data: str) -> tuple[bool, str]:
         return False, str(e)
     audit.log(target, "UBAH_FOTO", "foto profil diperbarui" if clean else "foto profil dihapus")
     return True, ("Foto profil berhasil diperbarui." if clean else "Foto profil dihapus.")
+
+
+# ------------------------------------------------------------------ lupa password (email ke zetheron.id@gmail.com)
+def build_reset_mailto(record: dict) -> str:
+    """Bangun tautan mailto: ke zetheron.id@gmail.com berisi detail permintaan reset password."""
+    to_addr = record.get("to_email") or SUPPORT_EMAIL
+    role_label = "Dosen" if record.get("role") == "dosen" else "Mahasiswa"
+    subject = f"[UGStack Lupa Password] {role_label} - {record.get('identifier', '')}"
+    body_lines = [
+        f"Permintaan Reset Password UGStack (#{record.get('id', '-')})",
+        f"Peran       : {role_label}",
+        f"Identitas   : {record.get('identifier', '-')}",
+        f"Nama Lengkap: {record.get('full_name') or '-'}",
+        f"Email Balasan: {record.get('email', '-')}",
+        f"Keterangan  : {record.get('reason') or '-'}",
+        f"Waktu       : {record.get('created_at', '-')}",
+    ]
+    params = urllib.parse.urlencode({"subject": subject, "body": "\n".join(body_lines)}, quote_via=urllib.parse.quote)
+    return f"mailto:{to_addr}?{params}"
+
+
+def build_reply_mailto(record: dict, temp_password: str) -> str:
+    """Bangun tautan mailto: untuk membalas pengguna dengan password sementara."""
+    target_email = (record.get("email") or "").strip() or SUPPORT_EMAIL
+    subject = f"[UGStack] Password Sementara Akun {record.get('identifier', '')}"
+    body_lines = [
+        f"Halo {record.get('full_name') or record.get('identifier', '')},",
+        "",
+        "Permintaan lupa password Anda di UGStack telah diproses.",
+        f"Username / NPM    : {record.get('matched_username') or record.get('identifier', '')}",
+        f"Password Sementara: {temp_password}",
+        "",
+        "Silakan masuk ke UGStack dan segera ganti password Anda.",
+        f"Tim Dukungan UGStack ({SUPPORT_EMAIL})",
+    ]
+    params = urllib.parse.urlencode({"subject": subject, "body": "\n".join(body_lines)}, quote_via=urllib.parse.quote)
+    return f"mailto:{target_email}?{params}"
+
+
+def _send_email_to_support(subject: str, body: str, reply_to: str = "", to_email: str = SUPPORT_EMAIL) -> tuple[bool, str]:
+    """Kirim email ke zetheron.id@gmail.com melalui SMTP (jika UG_SMTP_* diatur) atau webhook (jika UG_EMAIL_WEBHOOK_URL diatur)."""
+    smtp_host = (os.getenv("UG_SMTP_HOST") or "").strip()
+    smtp_user = (os.getenv("UG_SMTP_USER") or "").strip()
+    smtp_pass = (os.getenv("UG_SMTP_PASSWORD") or "").strip()
+    smtp_port = int(os.getenv("UG_SMTP_PORT") or "587")
+    smtp_from = (os.getenv("UG_SMTP_FROM") or smtp_user or SUPPORT_EMAIL).strip()
+
+    if smtp_host and smtp_user and smtp_pass:
+        try:
+            msg = EmailMessage()
+            msg["Subject"] = subject
+            msg["From"] = smtp_from
+            msg["To"] = to_email
+            if reply_to:
+                msg["Reply-To"] = reply_to
+            msg.set_content(body)
+            context = ssl.create_default_context()
+            if smtp_port == 465:
+                with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=8, context=context) as server:
+                    server.login(smtp_user, smtp_pass)
+                    server.send_message(msg)
+            else:
+                with smtplib.SMTP(smtp_host, smtp_port, timeout=8) as server:
+                    server.ehlo()
+                    server.starttls(context=context)
+                    server.login(smtp_user, smtp_pass)
+                    server.send_message(msg)
+            return True, "smtp"
+        except Exception as exc:
+            return False, f"smtp_error:{exc}"
+
+    webhook_url = (os.getenv("UG_EMAIL_WEBHOOK_URL") or "").strip()
+    if webhook_url:
+        try:
+            payload = json.dumps({
+                "to": to_email,
+                "reply_to": reply_to,
+                "subject": subject,
+                "body": body,
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                webhook_url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                if 200 <= getattr(resp, "status", 200) < 300:
+                    return True, "webhook"
+        except Exception as exc:
+            return False, f"webhook_error:{exc}"
+
+    return False, "antrean_lokal"
+
+
+def request_password_reset(role: str, identifier: str, full_name: str = "", email: str = "", reason: str = "") -> tuple[bool, str, dict | None]:
+    """Ajukan permintaan lupa password untuk mahasiswa atau dosen dan kirim pesan ke zetheron.id@gmail.com."""
+    clean_role = (role or "mahasiswa").strip().lower()
+    if clean_role not in ("mahasiswa", "dosen"):
+        return False, "Peran pemohon harus mahasiswa atau dosen.", None
+
+    clean_id = (identifier or "").strip()
+    clean_name = " ".join((full_name or "").strip().split())
+    clean_email = (email or "").strip()
+    clean_reason = (reason or "").strip()
+
+    if clean_role == "mahasiswa":
+        if not clean_name:
+            return False, "Nama lengkap mahasiswa wajib diisi.", None
+        ok_n, msg_n = validate_full_name(clean_name)
+        if not ok_n:
+            return False, msg_n, None
+        if not clean_id:
+            return False, "NPM atau username mahasiswa wajib diisi.", None
+        if not (validate_npm_value(clean_id)[0] or validate_username(clean_id)[0]):
+            return False, "Format NPM atau username tidak valid.", None
+    else:
+        if not clean_id:
+            return False, "Username dosen wajib diisi.", None
+        ok_u, msg_u = validate_username(clean_id)
+        if not ok_u:
+            return False, msg_u, None
+        if clean_name:
+            ok_n, msg_n = validate_full_name(clean_name)
+            if not ok_n:
+                return False, msg_n, None
+
+    ok_e, msg_e = validate_email(clean_email)
+    if not ok_e:
+        return False, msg_e, None
+
+    if len(clean_reason) > 500:
+        return False, "Keterangan maksimal 500 karakter.", None
+
+    now_str = datetime.now().isoformat(timespec="seconds")
+    try:
+        with storage.LOCK:
+            users = storage.load_json(USERS_FILE, [])
+            matched = _find(users, clean_id)
+            if matched is None and clean_name:
+                matched = _find(users, clean_name)
+            if matched is not None and matched.get("role") == "admin":
+                return False, "Akun admin menggunakan jalur kode putar khusus.", None
+            if matched is not None and matched.get("role") != clean_role:
+                return False, f"Akun tersebut terdaftar sebagai {matched['role']}. Silakan pilih peran {matched['role']}.", None
+
+            requests = storage.load_json(RESET_REQUESTS_FILE, [])
+            if not isinstance(requests, list):
+                requests = []
+            next_id = (max((int(r.get("id", 0)) for r in requests if isinstance(r, dict)), default=0) + 1)
+            rec = {
+                "id": next_id,
+                "role": clean_role,
+                "identifier": clean_id,
+                "matched_username": matched["username"] if matched else "",
+                "account_found": bool(matched),
+                "full_name": clean_name or (matched.get("full_name", "") if matched else ""),
+                "email": clean_email,
+                "reason": clean_reason or "Lupa password akun UGStack",
+                "to_email": SUPPORT_EMAIL,
+                "status": "menunggu",
+                "delivery": "antrean_lokal",
+                "created_at": now_str,
+            }
+            requests.append(rec)
+            storage.save_json(RESET_REQUESTS_FILE, requests)
+    except StorageError as e:
+        return False, str(e), None
+
+    role_title = "Dosen" if clean_role == "dosen" else "Mahasiswa"
+    subject = f"[UGStack Lupa Password #{rec['id']}] {role_title} - {clean_id}"
+    body = (
+        f"Permintaan Reset Password UGStack (#{rec['id']})\n"
+        f"Tujuan      : {SUPPORT_EMAIL}\n"
+        f"Peran       : {role_title}\n"
+        f"Identitas   : {clean_id}\n"
+        f"Akun Cocok  : {rec['matched_username'] or 'Belum ditemukan di daftar pengguna'}\n"
+        f"Nama Lengkap: {rec['full_name'] or '-'}\n"
+        f"Email Kontak: {clean_email}\n"
+        f"Keterangan  : {rec['reason']}\n"
+        f"Waktu       : {now_str}\n"
+    )
+    sent, channel = _send_email_to_support(subject, body, reply_to=clean_email, to_email=SUPPORT_EMAIL)
+    rec["delivery"] = channel
+    rec["mailto_url"] = build_reset_mailto(rec)
+
+    try:
+        with storage.LOCK:
+            requests = storage.load_json(RESET_REQUESTS_FILE, [])
+            for r in requests:
+                if isinstance(r, dict) and r.get("id") == rec["id"]:
+                    r["delivery"] = channel
+                    break
+            storage.save_json(RESET_REQUESTS_FILE, requests)
+
+            chat_msgs = storage.load_json("chat_messages.json", [])
+            if not isinstance(chat_msgs, list):
+                chat_msgs = []
+            chat_id = (max((m.get("id", 0) for m in chat_msgs if isinstance(m, dict)), default=0) + 1)
+            chat_msgs.append({
+                "id": chat_id,
+                "channel": "umum",
+                "username": rec["matched_username"] or clean_id,
+                "full_name": rec["full_name"] or clean_name,
+                "npm": clean_id if clean_role == "mahasiswa" else "",
+                "role": clean_role,
+                "text": (
+                    f"[LUPA PASSWORD #{rec['id']} -> {SUPPORT_EMAIL}] "
+                    f"{role_title} {clean_name or clean_id} ({clean_id}) | Email: {clean_email} | "
+                    f"Ket: {rec['reason']}"
+                ),
+                "time": now_str[:16].replace("T", " "),
+            })
+            storage.save_json("chat_messages.json", chat_msgs)
+    except Exception:
+        pass
+
+    audit.log(rec["matched_username"] or clean_id, "LUPA_PASSWORD", f"{clean_role} -> {SUPPORT_EMAIL} ({clean_email})")
+    if sent:
+        msg = f"Permintaan reset password berhasil dikirim ke {SUPPORT_EMAIL}. Tim admin akan mengirimkan password baru ke {clean_email}."
+    else:
+        msg = f"Permintaan reset password tercatat dan diarahkan ke {SUPPORT_EMAIL}. Anda juga dapat menekan tombol Kirim Email untuk membuka aplikasi email secara langsung."
+    return True, msg, rec
+
+
+def list_password_resets(actor) -> list[dict]:
+    """Daftar permintaan lupa password untuk ditampilkan di Panel Admin."""
+    if not is_admin(actor):
+        return []
+    try:
+        rows = storage.load_json(RESET_REQUESTS_FILE, [])
+        if not isinstance(rows, list):
+            return []
+        result = []
+        for r in reversed(rows):
+            if isinstance(r, dict):
+                item = dict(r)
+                item["mailto_url"] = build_reset_mailto(item)
+                result.append(item)
+        return result
+    except StorageError:
+        return []
+
+
+def resolve_password_reset(actor, req_id: int, temp_password: str = None) -> tuple[bool, str, dict | None]:
+    """Admin memproses permintaan lupa password: reset password akun (atau buat akun bila belum ada) dan siapkan balasan email."""
+    if not is_admin(actor):
+        return False, "Hanya admin yang boleh mengelola pengguna.", None
+    password = (temp_password or "").strip() or generate_password()
+    ok_pw, msg_pw = validate_password(password)
+    if not ok_pw:
+        return False, msg_pw, None
+
+    now_str = datetime.now().isoformat(timespec="seconds")
+    try:
+        with storage.LOCK:
+            requests = storage.load_json(RESET_REQUESTS_FILE, [])
+            target_req = None
+            for r in requests:
+                if isinstance(r, dict) and int(r.get("id", -1)) == int(req_id):
+                    target_req = r
+                    break
+            if target_req is None:
+                return False, "Permintaan reset password tidak ditemukan.", None
+
+            users = storage.load_json(USERS_FILE, [])
+            lookup = target_req.get("matched_username") or target_req.get("identifier") or ""
+            user = _find(users, lookup)
+            if user is None and target_req.get("full_name"):
+                user = _find(users, target_req["full_name"])
+
+            if user is None:
+                ident = (target_req.get("identifier") or "").strip()
+                role = target_req.get("role") if target_req.get("role") in ("mahasiswa", "dosen") else "mahasiswa"
+                ok_u, msg_u = validate_username(ident)
+                if not ok_u:
+                    return False, "Pengguna tidak ditemukan.", None
+                npm_val = ident if (role == "mahasiswa" and validate_npm_value(ident)[0]) else ""
+                user = _new_user(ident, password, role, must_change=True, npm=npm_val, full_name=target_req.get("full_name", ""))
+                users.append(user)
+            else:
+                user["salt"], user["password_hash"] = hash_password(password)
+                user["must_change"] = True
+
+            actual_uname = user["username"]
+            storage.save_json(USERS_FILE, users)
+            _clear_user_locks(actual_uname, target_req.get("identifier", ""), str(user.get("npm") or ""))
+
+            target_req["status"] = "selesai"
+            target_req["matched_username"] = actual_uname
+            target_req["resolved_at"] = now_str
+            target_req["resolved_by"] = actor["username"]
+            storage.save_json(RESET_REQUESTS_FILE, requests)
+            rec_copy = dict(target_req)
+    except StorageError as e:
+        return False, str(e), None
+
+    sessions.revoke_user(actual_uname)
+    reply_mailto = build_reply_mailto(rec_copy, password)
+    rec_copy["temp_password"] = password
+    rec_copy["reply_mailto"] = reply_mailto
+
+    if rec_copy.get("email"):
+        subj = f"[UGStack] Password Sementara Akun {actual_uname}"
+        body = (
+            f"Halo {rec_copy.get('full_name') or actual_uname},\n\n"
+            f"Permintaan lupa password Anda telah disetujui oleh Admin UGStack.\n"
+            f"Username / NPM    : {actual_uname}\n"
+            f"Password Sementara: {password}\n\n"
+            f"Silakan login dan segera ubah password Anda.\n"
+            f"Dukungan UGStack ({SUPPORT_EMAIL})"
+        )
+        _send_email_to_support(subj, body, reply_to=SUPPORT_EMAIL, to_email=rec_copy["email"])
+
+    audit.log(actor["username"], "RESOLVE_LUPA_PASSWORD", f"#{req_id} -> {actual_uname}")
+    return True, f"Password {actual_uname} direset. Berikan password sementara kepada pengguna ({rec_copy.get('email', SUPPORT_EMAIL)}).", rec_copy
+

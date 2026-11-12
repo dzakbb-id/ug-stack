@@ -98,7 +98,9 @@ class TestTerjemahan(unittest.TestCase):
                    "LOGIN_ADMIN_DITOLAK", "LOGIN_ADMIN_GAGAL", "LOGIN_ADMIN_KODE", "admin mencoba login dengan password",
                    "akun admin '{}' tidak ditemukan", "insertion sort", "merge sort",
                    "[UG-Stack] Kunci admin dibuat di berkas admin_key.txt (jangan diunggah). Salin isinya ke tools/admin_generator.html untuk mendapatkan kode login admin.",
-                   "{} {} - Cheat Sheet", "print\\((.*?)\\)"}
+                   "{} {} - Cheat Sheet", "print\\((.*?)\\)",
+                   "Content-Type", "From", "To", "Subject", "Reply-To",
+                   "UG_EMAIL_WEBHOOK_URL", "UG_SMTP_PASSWORD", "RESOLVE_LUPA_PASSWORD", "mailto:{}?{}"}
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         files = glob.glob(os.path.join(root, "views", "*.py")) + glob.glob(os.path.join(root, "components", "*.py")) + \
                 [os.path.join(root, "main.py")] + glob.glob(os.path.join(root, "services", "*.py"))

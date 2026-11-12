@@ -28,7 +28,7 @@ BOT_KB = [
     (("sertifikat", "lulus", "verifikasi"), "Untuk mendapatkan Sertifikat Resmi UG-Stack, kerjakan Quiz di menu Latihan dan raih skor minimal 70% dalam waktu 10 menit."),
     (("waktu", "10 menit", "timer", "quiz"), "Setiap Quiz memiliki batas waktu pengerjaan 10 menit (hitung mundur otomatis). Jika waktu habis, jawaban Anda dinilai otomatis."),
     (("foto", "avatar", "profil", "upload"), "Anda dapat mengubah foto profil melalui tombol '📷 Foto Profil' di sidebar bawah Dasbor (unggah file foto, URL gambar, atau pilih avatar cepat)."),
-    (("password", "sandi", "lupa", "terkunci"), "Jika lupa password atau akun terkunci, silakan hubungi Admin melalui layanan CS ini dengan menyebutkan Nama Lengkap dan NPM Anda."),
+    (("password", "sandi", "lupa", "terkunci"), "Jika lupa password atau akun terkunci, gunakan tombol '🔑 Lupa password?' di halaman Login Mahasiswa/Dosen. Permintaan Anda akan diteruskan ke email dukungan resmi zetheron.id@gmail.com dan Panel Admin."),
 ]
 
 

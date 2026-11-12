@@ -65,8 +65,21 @@ async function tick() {
   $('url').value = base ? (base + '/ruang-admin?key=' + code) : '(isi alamat aplikasi untuk membuat tautan)';
 }
 
-function copyText(id) {
-  const el = $(id); el.select(); document.execCommand('copy');
+async function copyText(id) {
+  const el = $(id);
+  const val = el ? el.value : '';
+  if (!val) return;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(val);
+    } else {
+      el.select();
+      document.execCommand('copy');
+    }
+  } catch (_) {
+    el.select();
+    document.execCommand('copy');
+  }
   alert('Disalin. Segera pakai sebelum waktunya habis.');
 }
 

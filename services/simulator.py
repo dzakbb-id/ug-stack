@@ -155,12 +155,21 @@ def run_sql_safe(code: str) -> str:
                     cv = float(val) if isinstance(rv, (int, float)) else val
                 except ValueError:
                     cv = val
-                if op == "=": return str(rv).lower() == str(cv).lower()
-                if op == "!=": return str(rv).lower() != str(cv).lower()
-                if op == ">=": return rv >= cv
-                if op == "<=": return rv <= cv
-                if op == ">": return rv > cv
-                if op == "<": return rv < cv
+                try:
+                    if op == "=":
+                        if isinstance(rv, (int, float)) and isinstance(cv, (int, float)):
+                            return rv == cv
+                        return str(rv).lower() == str(cv).lower()
+                    if op == "!=":
+                        if isinstance(rv, (int, float)) and isinstance(cv, (int, float)):
+                            return rv != cv
+                        return str(rv).lower() != str(cv).lower()
+                    if op == ">=": return rv >= cv
+                    if op == "<=": return rv <= cv
+                    if op == ">": return rv > cv
+                    if op == "<": return rv < cv
+                except TypeError:
+                    return False
                 return True
 
             rows = [r for r in rows if match(r)]
@@ -209,11 +218,18 @@ def _run_js_or_c_family(lang: str, code: str) -> str:
         m_log = re.search(r"(?:console\.log|System\.out\.println|Console\.WriteLine)\((.+)\)", s)
         if m_log:
             arg = m_log.group(1).strip()
+            def _safe_interp(m):
+                expr = m.group(1).strip()
+                try:
+                    return str(eval(expr, {"__builtins__": {}}, env))
+                except Exception:
+                    return str(env.get(expr, expr))
+
             if arg.startswith("`") and arg.endswith("`"):
-                txt = re.sub(r"\$\{([^}]+)\}", lambda m: str(eval(m.group(1), {"__builtins__": {}}, env)), arg[1:-1])
+                txt = re.sub(r"\$\{([^}]+)\}", _safe_interp, arg[1:-1])
                 out_lines.append(txt)
             elif arg.startswith('$"') and arg.endswith('"'):
-                txt = re.sub(r"\{([^}]+)\}", lambda m: str(eval(m.group(1), {"__builtins__": {}}, env)), arg[2:-1])
+                txt = re.sub(r"\{([^}]+)\}", _safe_interp, arg[2:-1])
                 out_lines.append(txt)
             else:
                 parts = [p.strip() for p in re.split(r",|\+", arg)]

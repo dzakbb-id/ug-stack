@@ -208,6 +208,19 @@ def proses_daftar(io: Console) -> None:
     io.say(("[OK] " if ok else "[GAGAL] ") + msg)
 
 
+def proses_lupa_password(io: Console) -> None:
+    """Ajukan reset password (mahasiswa/dosen); diteruskan ke zetheron.id@gmail.com."""
+    role = (io.ask("Peran (mahasiswa/dosen) [mahasiswa]: ") or "mahasiswa").strip().lower()
+    full_name = io.ask("Nama lengkap: ")
+    ident = io.ask("NPM / Username: ")
+    email = io.ask("Email aktif Anda: ")
+    reason = io.ask("Keterangan (opsional): ")
+    ok, msg, rec = auth.request_password_reset(role, ident, full_name=full_name, email=email, reason=reason)
+    io.say(("[OK] " if ok else "[GAGAL] ") + msg)
+    if ok and rec:
+        io.say(f"Tiket #{rec['id']} diarahkan ke {auth.SUPPORT_EMAIL}")
+
+
 def paksa_ganti_password(io: Console, user: dict) -> dict:
     """Akun dengan password sementara wajib menggantinya. Kosongkan password lama untuk batal (None)."""
     while user.get("must_change"):
@@ -228,7 +241,7 @@ def run(io: Console = None) -> None:
     io.say("=== UG-Stack (versi konsol) ===")
     try:
         while True:
-            io.say("\n1. Login (mahasiswa / dosen)\n2. Daftar mahasiswa\n3. Login Admin (kode)\n0. Keluar")
+            io.say("\n1. Login (mahasiswa / dosen)\n2. Daftar mahasiswa\n3. Login Admin (kode)\n4. Lupa password (mahasiswa / dosen)\n0. Keluar")
             pilihan = io.ask("Pilih: ")
             if pilihan == "1":
                 user = proses_login(io)
@@ -252,6 +265,8 @@ def run(io: Console = None) -> None:
                     return
             elif pilihan == "2":
                 proses_daftar(io)
+            elif pilihan == "4":
+                proses_lupa_password(io)
             elif pilihan == "0":
                 io.say("Sampai jumpa.")
                 return

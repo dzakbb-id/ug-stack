@@ -12,7 +12,10 @@ from services import admin_code  # noqa: E402
 
 
 def main() -> None:
-    secret = sys.argv[1] if len(sys.argv) > 1 else admin_code.get_secret()
+    secret = sys.argv[1].strip() if len(sys.argv) > 1 else admin_code.get_secret()
+    if not secret:
+        admin_code.ensure_secret()
+        secret = admin_code.get_secret()
     if not secret:
         print("Kunci admin belum ada. Isi UG_ADMIN_KEY atau jalankan aplikasi sekali agar admin_key.txt dibuat.")
         return
