@@ -10,22 +10,48 @@ from . import quiz_admin, storage
 SCORES_FILE = "scores.json"
 
 
-def grade(lang_key: str, answers: list, questions: list = None) -> dict:
+def grade(lang_key: str, answers: list, questions: list = None, level: str = "beginner") -> dict:
     """answers: indeks opsi terpilih per soal (None bila belum dijawab)."""
     if questions is None:
         questions = quiz_admin.get_questions(lang_key)
+    lvl_key = quiz_admin.normalize_quiz_level(level)
+    lvl_name = quiz_admin.QUIZ_LEVEL_MAP[lvl_key]
     correct = 0
     details = []
+    letters = "ABCD"
     for i, q in enumerate(questions):              # perulangan: periksa tiap soal
         chosen = answers[i] if i < len(answers) else None
-        ok = chosen == q["answer"]
+        opts = q.get("options") or []
+        ans_idx = int(q.get("answer", 0))
+        ok = chosen == ans_idx
         if ok:
             correct += 1
-        details.append({"correct": ok, "chosen": chosen, "answer": q["answer"], "explain": q["explain"]})
+        ans_letter = letters[ans_idx] if 0 <= ans_idx < len(letters) else "A"
+        ans_text = opts[ans_idx] if 0 <= ans_idx < len(opts) else ""
+        chosen_letter = letters[chosen] if (chosen is not None and 0 <= int(chosen) < len(letters)) else "-"
+        chosen_text = opts[chosen] if (chosen is not None and 0 <= int(chosen) < len(opts)) else ""
+        details.append({
+            "correct": ok,
+            "chosen": chosen,
+            "chosen_letter": chosen_letter,
+            "chosen_text": chosen_text,
+            "answer": ans_idx,
+            "answer_letter": ans_letter,
+            "answer_text": ans_text,
+            "explain": q.get("explain", ""),
+            "level": q.get("level", lvl_name),
+        })
     total = len(questions)
     percent = correct * 100.0 / total if total else 0.0
-    return {"correct": correct, "total": total, "percent": percent,
-            "passed": percent >= PASS_PERCENT, "details": details}
+    return {
+        "correct": correct,
+        "total": total,
+        "percent": percent,
+        "passed": percent >= PASS_PERCENT,
+        "level": lvl_name,
+        "level_key": lvl_key,
+        "details": details,
+    }
 
 
 def save_result(username: str, lang_key: str, result: dict):
@@ -38,6 +64,10 @@ def save_result(username: str, lang_key: str, result: dict):
             rec["attempts"] += 1
             rec["last"] = now
             rec["best"] = max(rec["best"], round(result["percent"]))
+            lvl_k = result.get("level_key") or "beginner"
+            rec["last_level"] = result.get("level") or "Beginner"
+            lvl_scores = rec.setdefault("levels", {})
+            lvl_scores[lvl_k] = max(int(lvl_scores.get(lvl_k, 0)), round(result["percent"]))
             if result["passed"] and not rec["passed_at"]:
                 rec["passed_at"] = now
             data[username][lang_key] = rec

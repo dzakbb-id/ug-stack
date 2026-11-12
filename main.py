@@ -128,6 +128,8 @@ def main(page: ft.Page):
                                               "certificates", "certificate", "tutorials", "roadmap", "search",
                                               "admin", "tryit", "info"):
                     state["view"], state["args"] = saved_view["view"], saved_view.get("args") or {}
+                    if state["view"] == "quiz":
+                        page._ug_reloaded_quiz = True
             except (ValueError, TypeError, AttributeError):
                 pass
     except Exception:
@@ -313,13 +315,14 @@ def main(page: ft.Page):
             lang_key = args.get("lang") if args.get("lang") in BY_KEY else "python"
             return get_references_view(page, BY_KEY[lang_key], mobile, lambda k: go("references", lang=k))
         if view == "exercises":
-            return get_exercises_view(page, user, mobile, lambda k: go("quiz", lang=k), on_tryit=open_tryit)
+            return get_exercises_view(page, user, mobile, lambda k, lvl="beginner": go("quiz", lang=k, level=lvl), on_tryit=open_tryit)
         if view == "quiz":
             lang_key = args.get("lang") if args.get("lang") in BY_KEY else "html"
+            quiz_lvl = args.get("level", "beginner")
             return get_quiz_view(page, BY_KEY[lang_key], user, mobile, on_back=lambda: go("exercises"),
                                  on_login=lambda: open_auth("login"), on_certificate=lambda k: go("certificate", lang=k),
-                                 on_retry=lambda k: go("quiz", lang=k), on_lesson=lambda k: open_lang(k),
-                                 on_tryit=open_tryit)
+                                 on_retry=lambda k, lvl=quiz_lvl: go("quiz", lang=k, level=lvl), on_lesson=lambda k: open_lang(k),
+                                 on_tryit=open_tryit, level=quiz_lvl)
         if view == "certificates":
             return get_certificates_view(page, user, mobile, on_login=lambda: open_auth("login"),
                                          on_quiz=lambda k: go("quiz", lang=k), on_view_cert=lambda k: go("certificate", lang=k))
@@ -356,6 +359,7 @@ def main(page: ft.Page):
         args = state["args"]
         if view != "quiz":
             page._ug_quiz_token = None
+            page.overlay[:] = [c for c in page.overlay if getattr(c, "data", None) != "ug_quiz_hud"]
         page._ug_pending = []
         lang = state["lang"]
         content = build_content(view, args)

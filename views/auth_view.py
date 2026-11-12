@@ -108,12 +108,21 @@ def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial
         feedback.color = GREEN
         feedback.value = f"{msg} (Tiket #{rec['id']})"
         mailto_url = rec.get("mailto_url") or auth.build_reset_mailto(rec)
+        gmail_url = rec.get("gmail_url") or auth.build_reset_gmail_url(rec)
+        if rec.get("delivery") != "smtp":
+            _open_mailto(mailto_url)
         action_box.controls = [
             ft.ElevatedButton(
                 "📧 Kirim via Aplikasi Email (zetheron.id@gmail.com)",
                 bgcolor=GREEN,
                 color=ft.colors.WHITE,
                 on_click=lambda ev, u=mailto_url: _open_mailto(u),
+            ),
+            ft.ElevatedButton(
+                "🌐 Kirim via Gmail Web (zetheron.id@gmail.com)",
+                bgcolor="#2563EB",
+                color=ft.colors.WHITE,
+                on_click=lambda ev, u=gmail_url: _open_mailto(u),
             ),
             ft.OutlinedButton(
                 "Salin Email zetheron.id@gmail.com",

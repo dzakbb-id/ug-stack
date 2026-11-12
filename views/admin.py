@@ -509,10 +509,29 @@ def _tab_users(page, user, mobile, refresh):
             )
         )
 
+    smtp_cfg = settings.get_smtp_config()
+    smtp_pass_tf = ft.TextField(
+        label="Gmail App Password (16 karakter untuk pengiriman SMTP otomatis zetheron.id@gmail.com)",
+        value=smtp_cfg.get("smtp_password", ""),
+        password=True,
+        can_reveal_password=True,
+        bgcolor=BG_CARD_ALT,
+        color=TEXT_PRIMARY,
+        border_color=BORDER_SUBTLE,
+        border_radius=8,
+        expand=True,
+    )
+
+    def save_smtp(e=None):
+        ok_s, msg_s = settings.set_smtp_config(user, auth.SUPPORT_EMAIL, smtp_pass_tf.value or "")
+        page.show_snack(msg_s)
+        refresh()
+
     reset_section = glass_card(
         ft.Column(
             [
                 ft.Text(f"🔑 Permintaan Lupa Password ({auth.SUPPORT_EMAIL}) — {len(reset_reqs)} tiket", size=15, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                ft.Row([smtp_pass_tf, green_button("Simpan SMTP", save_smtp)], spacing=8, wrap=True),
                 *(reset_cards if reset_cards else [ft.Text("Belum ada permintaan lupa password.", size=13, color=TEXT_MUTED)]),
             ],
             spacing=10,

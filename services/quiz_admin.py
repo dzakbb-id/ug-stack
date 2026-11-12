@@ -10,6 +10,17 @@ from .storage import StorageError
 
 CUSTOM_FILE = "quiz_custom.json"
 _RNG = random.SystemRandom()
+QUIZ_LEVELS = (
+    ("beginner", "Beginner"),
+    ("intermediate", "Intermediate"),
+    ("professional", "Professional"),
+)
+QUIZ_LEVEL_MAP = {k: label for k, label in QUIZ_LEVELS}
+
+
+def normalize_quiz_level(level: str | None) -> str:
+    clean = (level or "beginner").strip().lower()
+    return clean if clean in QUIZ_LEVEL_MAP else "beginner"
 
 
 def get_questions(lang_key: str) -> list:
@@ -24,7 +35,7 @@ def get_question_pool(lang_key: str) -> list:
     return list(QUIZZES.get(lang_key, [])) + list(CONCEPT_QUIZZES.get(lang_key, [])) + custom
 
 
-def _shuffle_question_options(q: dict, prev_answer: int | None = None) -> dict:
+def _shuffle_question_options(q: dict, prev_answer: int | None = None, level_name: str = "Beginner") -> dict:
     """Acak urutan keempat opsi jawaban dan sesuaikan indeks jawaban benar."""
     orig_opts = list(q.get("options") or [])
     correct_idx = int(q.get("answer", 0))
@@ -34,24 +45,40 @@ def _shuffle_question_options(q: dict, prev_answer: int | None = None) -> dict:
     if prev_answer is not None and len(pairs) > 1 and new_ans == prev_answer:
         pairs = pairs[1:] + pairs[:1]
         new_ans = next((i for i, (orig_i, _) in enumerate(pairs) if orig_i == correct_idx), 0)
-    return {**q, "options": [opt for _, opt in pairs], "answer": new_ans}
+    return {
+        **q,
+        "options": [opt for _, opt in pairs],
+        "answer": new_ans,
+        "level": q.get("level") or level_name,
+    }
 
 
-def get_attempt_questions(lang_key: str, count: int = 20, prev_questions: list | None = None) -> list:
-    """Hasilkan daftar soal & opsi yang diacak setiap percobaan agar mahasiswa memahami konsep, bukan menghafal urutan."""
-    base_pool = list(QUIZZES.get(lang_key, [])) + list(CONCEPT_QUIZZES.get(lang_key, []))
+def get_attempt_questions(lang_key: str, count: int = 20, prev_questions: list | None = None, level: str = "beginner") -> list:
+    """Hasilkan daftar soal & opsi yang diacak setiap percobaan sesuai level (Beginner, Intermediate, Professional)."""
+    lvl_key = normalize_quiz_level(level)
+    lvl_label = QUIZ_LEVEL_MAP[lvl_key]
+    core_list = list(QUIZZES.get(lang_key, []))
+    concept_list = list(CONCEPT_QUIZZES.get(lang_key, []))
+    base_pool = core_list + concept_list
     custom = list(storage.load_json(CUSTOM_FILE, {}).get(lang_key, []))
     target_n = min(max(1, count), len(base_pool))
     prev_map = {pq.get("q"): pq.get("answer") for pq in (prev_questions or []) if isinstance(pq, dict) and pq.get("q")}
 
-    if prev_map and len(base_pool) > target_n:
-        unseen = [q for q in base_pool if q["q"] not in prev_map]
-        seen = [q for q in base_pool if q["q"] in prev_map]
+    if lvl_key == "beginner":
+        prioritized = core_list[:14] + concept_list[:6] + core_list[14:] + concept_list[6:]
+    elif lvl_key == "intermediate":
+        prioritized = core_list[6:20] + concept_list[:10] + core_list[:6] + concept_list[10:]
+    else:
+        prioritized = concept_list + core_list[10:] + core_list[:10]
+
+    if prev_map and len(prioritized) > target_n:
+        unseen = [q for q in prioritized if q["q"] not in prev_map]
+        seen = [q for q in prioritized if q["q"] in prev_map]
         _RNG.shuffle(unseen)
         _RNG.shuffle(seen)
         chosen = (unseen + seen)[:target_n]
     else:
-        pool_copy = list(base_pool)
+        pool_copy = list(prioritized)
         _RNG.shuffle(pool_copy)
         chosen = pool_copy[:target_n]
 
@@ -61,7 +88,7 @@ def get_attempt_questions(lang_key: str, count: int = 20, prev_questions: list |
         if combined[0].get("q") == prev_questions[0].get("q"):
             combined[0], combined[-1] = combined[-1], combined[0]
 
-    return [_shuffle_question_options(q, prev_map.get(q.get("q"))) for q in combined]
+    return [_shuffle_question_options(q, prev_map.get(q.get("q")), level_name=lvl_label) for q in combined]
 
 
 def list_custom() -> list:

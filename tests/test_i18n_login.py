@@ -100,7 +100,9 @@ class TestTerjemahan(unittest.TestCase):
                    "[UG-Stack] Kunci admin dibuat di berkas admin_key.txt (jangan diunggah). Salin isinya ke tools/admin_generator.html untuk mendapatkan kode login admin.",
                    "{} {} - Cheat Sheet", "print\\((.*?)\\)",
                    "Content-Type", "From", "To", "Subject", "Reply-To",
-                   "UG_EMAIL_WEBHOOK_URL", "UG_SMTP_PASSWORD", "RESOLVE_LUPA_PASSWORD", "mailto:{}?{}"}
+                   "UG_EMAIL_WEBHOOK_URL", "UG_SMTP_PASSWORD", "RESOLVE_LUPA_PASSWORD", "mailto:{}?{}",
+                   '"success"', "Accept", "GMAIL_APP_PASSWORD", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) UGStack/8.0",
+                   "Origin", "Referer", "UG_ENABLE_FORMSUBMIT", "User-Agent", "Professional"}
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         files = glob.glob(os.path.join(root, "views", "*.py")) + glob.glob(os.path.join(root, "components", "*.py")) + \
                 [os.path.join(root, "main.py")] + glob.glob(os.path.join(root, "services", "*.py"))

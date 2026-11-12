@@ -577,6 +577,72 @@ class TestEndToEndUI(unittest.TestCase):
         # 5. tools/admin_code.py memastikan secret tersedia
         self.assertIsNotNone(admin_code_cli.admin_code.get_secret())
 
+    def test_T81_fitur_quiz_level_sticky_timer_kotak_hijau_popup_kunci_dan_bonus_reload(self):
+        """Uji level quiz (Beginner/Intermediate/Professional), sticky HUD timer, kotak soal hijau, bonus +5 menit reload, pop-up nilai, dan kunci jawaban."""
+        from components.ui import GREEN
+
+        orig_run_pending = main.run_pending
+        main.run_pending = lambda page: [fn() for fn in getattr(page, "_ug_pending", [])]
+        try:
+            page = FakePage(width=1280)
+            main.main(page)
+
+            # Buka halaman Latihan & pilih level Intermediate lalu mulai quiz
+            ex_btns = find_buttons(page.appbar, "Latihan")
+            ex_btns[0].on_click(DummyEvent(ex_btns[0]))
+            inter_btns = find_buttons(page.controls[1], "Intermediate")
+            self.assertTrue(inter_btns)
+            inter_btns[0].on_click(DummyEvent(inter_btns[0]))
+            start_btns = find_buttons(page.controls[1], "Mulai quiz")
+            start_btns[0].on_click(DummyEvent(start_btns[0]))
+
+            # 1. Pastikan sticky HUD terpasang di page.overlay agar tetap terlihat saat scroll
+            huds = [c for c in page.overlay if getattr(c, "data", None) == "ug_quiz_hud"]
+            self.assertEqual(len(huds), 1)
+            hud = huds[0]
+            hud_texts = " ".join(str(getattr(c, "value", "") or "") for c in walk_controls(hud) if isinstance(c, ft.Text))
+            self.assertIn("10:00", hud_texts)
+            self.assertIn("Intermediate", hud_texts)
+
+            # 2. Pastikan kotak nomor soal awalnya tidak diberi warna (bgcolor=None), dan berubah menjadi hijau (GREEN) saat dijawab
+            hud_boxes = [c for c in walk_controls(hud) if isinstance(c, ft.Container) and getattr(c, "tooltip", "") and str(c.tooltip).startswith("Soal ")]
+            self.assertEqual(len(hud_boxes), 20)
+            self.assertIsNone(hud_boxes[0].bgcolor)
+            self.assertIsNone(hud_boxes[1].bgcolor)
+
+            rgs = [c for c in walk_controls(page.controls[1]) if isinstance(c, ft.RadioGroup)]
+            rgs[0].value = str(page._ug_quiz_questions[0]["answer"])
+            rgs[0].on_change(DummyEvent(rgs[0]))
+            self.assertEqual(hud_boxes[0].bgcolor, GREEN)
+            self.assertIsNone(hud_boxes[1].bgcolor)
+
+            # 3. Uji waktu tambahan +5 menit (300 detik) saat web mengalami error / reload
+            new_rem = page._ug_quiz_add_error_bonus()
+            self.assertGreater(new_rem, 600)
+            hud_texts_after_bonus = " ".join(str(getattr(c, "value", "") or "") for c in walk_controls(hud) if isinstance(c, ft.Text))
+            self.assertIn("15:00", hud_texts_after_bonus)
+
+            # 4. Jawab semua soal, periksa jawaban -> pastikan Pop-up Nilai muncul + Kunci Jawaban & Penjelasan tampil di tiap soal
+            for idx_q, rg in enumerate(rgs):
+                rg.value = str(page._ug_quiz_questions[idx_q]["answer"])
+                rg.on_change(DummyEvent(rg))
+            self.assertTrue(all(b.bgcolor == GREEN for b in hud_boxes))
+
+            check_btns = find_buttons(page.controls[1], "Periksa jawaban")
+            check_btns[0].on_click(DummyEvent(check_btns[0]))
+
+            self.assertIsNotNone(page.dialog)
+            self.assertTrue(page.dialog.open)
+            dlg_texts = " ".join(str(getattr(c, "value", "") or "") for c in walk_controls(page.dialog) if isinstance(c, ft.Text))
+            self.assertIn("Quiz Selesai", dlg_texts)
+            self.assertIn("100%", dlg_texts)
+
+            page_texts = " ".join(str(getattr(c, "value", "") or "") for c in walk_controls(page.controls[1]) if isinstance(c, ft.Text))
+            self.assertIn("Kunci Jawaban:", page_texts)
+            self.assertIn("Penjelasan:", page_texts)
+        finally:
+            main.run_pending = orig_run_pending
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
