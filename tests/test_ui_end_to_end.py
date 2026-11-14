@@ -284,7 +284,7 @@ class TestEndToEndUI(unittest.TestCase):
             foto_btns[0].on_click(DummyEvent(foto_btns[0]))
             picker = getattr(page, "_ug_avatar_picker", None)
             self.assertIsNotNone(picker)
-            from views.account import UPLOAD_DIR
+            from views.auth_view import UPLOAD_DIR
             with open(os.path.join(UPLOAD_DIR, "avatar__mhs_test.png"), "wb") as fh:
                 fh.write(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
             fake_picked = type("FakeResult", (), {
@@ -533,10 +533,69 @@ class TestEndToEndUI(unittest.TestCase):
             temp_pw_dsn = page.clipboard
             self.assertTrue(len(temp_pw_dsn) >= 8)
 
-            # Dosen dapat login dengan password sementara hasil reset
+            # Dosen dapat login dengan password sementara hasil reset dalam batas waktu 10 menit
             ok_login_dsn, _, u_dsn = auth.login("dosen_bambang", temp_pw_dsn, expected_role="dosen")
             self.assertTrue(ok_login_dsn)
             self.assertTrue(u_dsn["must_change"])
+
+            # 4. Uji klik tombol "Setuju" dari email zetheron.id@gmail.com (otomatis kirim email reset password 10 menit)
+            mhs_req = next(r for r in reqs if r["role"] == "mahasiswa")
+            self.assertIn("/api/reset-approve?", mhs_req["approve_url"])
+            status_code, html_out = main.handle_reset_approve_html(mhs_req["id"], mhs_req["approve_token"])
+            self.assertEqual(status_code, 200)
+            self.assertIn("Reset Password Disetujui (Berlaku 10 Menit)", html_out)
+
+            t0 = 1_700_000_000.0
+            ok_app, msg_app, approved_rec = auth.approve_password_reset_by_token(
+                mhs_req["id"],
+                mhs_req["approve_token"],
+                now=t0,
+            )
+            self.assertTrue(ok_app, msg_app)
+            self.assertEqual(approved_rec["expires_in_minutes"], 10)
+            self.assertEqual(approved_rec["expires_at"], t0 + 600)
+
+            # Login / reset setelah 10 menit (601 detik) otomatis ditolak karena kedaluwarsa
+            ok_exp_login, msg_exp_login, _ = auth.login(
+                "50421888",
+                approved_rec["temp_password"],
+                expected_role="mahasiswa",
+                npm="50421888",
+                full_name="Rina Kartika",
+                now=t0 + 601,
+            )
+            self.assertFalse(ok_exp_login)
+            self.assertIn("10 menit", msg_exp_login)
+
+            ok_exp_rst, msg_exp_rst = auth.complete_password_reset(
+                "50421888",
+                approved_rec["reset_token"],
+                "PasswordBaru123",
+                "PasswordBaru123",
+                now=t0 + 601,
+            )
+            self.assertFalse(ok_exp_rst)
+            self.assertIn("10 menit", msg_exp_rst)
+
+            # Dalam batas 10 menit (mis. menit ke-5 / +300 detik), mahasiswa berhasil mengganti password dengan kode reset
+            ok_valid_rst, msg_valid_rst = auth.complete_password_reset(
+                "50421888",
+                approved_rec["reset_token"],
+                "PasswordBaru123",
+                "PasswordBaru123",
+                now=t0 + 300,
+            )
+            self.assertTrue(ok_valid_rst, msg_valid_rst)
+            ok_new_login, _, u_mhs_new = auth.login(
+                "50421888",
+                "PasswordBaru123",
+                expected_role="mahasiswa",
+                npm="50421888",
+                full_name="Rina Kartika",
+                now=t0 + 5000,
+            )
+            self.assertTrue(ok_new_login)
+            self.assertFalse(u_mhs_new["must_change"])
         finally:
             main.run_pending = orig_run_pending
 

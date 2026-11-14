@@ -3,29 +3,21 @@ import time
 
 import flet as ft
 
-from components.footer import create_footer
 from components.i18n_ui import translate_page, translate_tree
-from components.header import create_header
 from components.live import run_pending
+from components.ui import create_footer, create_header
 from content.languages import BY_KEY, find_lang
 from services import admin_code, auth, i18n, modules as module_service, progress, sessions, storage
 from services.roles import can_manage_content
 from services.storage import StorageError
-from views.account import UPLOAD_DIR, open_change_password
 from views.admin import get_admin_view
-from views.auth_view import get_auth_view
-from views.certificates import get_certificate_detail_view, get_certificates_view
-from views.dashboard import get_dashboard_view
-from views.exercises import get_exercises_view, get_quiz_view
-from views.home import get_home_view
-from views.info import get_info_view
-from views.lesson import get_lesson_view
-from views.references import get_references_view
-from views.roadmap import get_roadmap_view
-from views.search import get_search_view
-from views.tryit import get_tryit_view
+from views.auth_view import UPLOAD_DIR, get_auth_view, open_change_password
 from views.chat import create_chat_view
-from views.tutorials import get_tutorials_view
+from views.dashboard import get_dashboard_view
+from views.exercises import get_certificate_detail_view, get_certificates_view, get_exercises_view, get_quiz_view
+from views.home import get_home_view, get_info_view, get_roadmap_view, get_search_view, get_tutorials_view
+from views.lesson import get_lesson_view, get_references_view
+from views.tryit import get_tryit_view
 
 MOBILE_BREAKPOINT = 768                       # lebar (px) di bawah ini = tampilan HP
 PROTECTED_VIEWS = {"dashboard", "certificate", "admin"}  # halaman yang wajib login
@@ -418,6 +410,39 @@ def main(page: ft.Page):
         show_snack(msg)
 
 
+def handle_reset_approve_html(req_id: int, token: str) -> tuple[int, str]:
+    """Proses klik tombol 'Setuju' dari email zetheron.id@gmail.com dan kembalikan(status_code, html)."""
+    ok, msg, rec = auth.approve_password_reset_by_token(int(req_id or 0), str(token or ""))
+    if not ok or not rec:
+        html = (
+            "<!doctype html><html><head><meta charset='utf-8'><title>UGStack Reset Password</title></head>"
+            "<body style='font-family:Arial,sans-serif;padding:32px;background:#0f172a;color:#f8fafc;'>"
+            "<div style='max-width:520px;margin:0 auto;padding:24px;background:#1e293b;border-radius:12px;'>"
+            f"<h2 style='color:#ef4444;margin-top:0;'>✗ Gagal Menyetujui Reset Password</h2><p>{msg}</p>"
+            "</div></body></html>"
+        )
+        return 400, html
+
+    reply_gmail = rec.get("reply_gmail_url", "")
+    reply_mailto = rec.get("reply_mailto", "")
+    html = (
+        "<!doctype html><html><head><meta charset='utf-8'><title>Reset Password Disetujui</title></head>"
+        "<body style='font-family:Arial,sans-serif;padding:32px;background:#0f172a;color:#f8fafc;'>"
+        "<div style='max-width:560px;margin:0 auto;padding:24px;background:#1e293b;border:2px solid #04AA6D;border-radius:12px;'>"
+        "<h2 style='color:#10b981;margin-top:0;'>✅ Reset Password Disetujui (Berlaku 10 Menit)</h2>"
+        f"<p>{msg}</p>"
+        f"<p>Username / NPM: <b>{rec.get('matched_username', '')}</b><br>"
+        f"Password Sementara (10 Menit): <b style='color:#10b981;'>{rec.get('temp_password', '')}</b><br>"
+        f"Kode Reset (10 Menit): <code>{rec.get('reset_token', '')}</code><br>"
+        f"Email Tujuan: <b>{rec.get('email', '')}</b></p>"
+        f"<div style='margin-top:20px;'>"
+        f"<a href='{reply_gmail}' style='display:inline-block;padding:10px 18px;background:#04AA6D;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;margin-right:8px;'>📧 Buka Balasan Gmail</a>"
+        f"<a href='{reply_mailto}' style='display:inline-block;padding:10px 18px;background:#334155;color:#fff;text-decoration:none;border-radius:8px;'>✉️ Buka Aplikasi Email</a>"
+        f"</div></div></body></html>"
+    )
+    return 200, html
+
+
 def _make_asgi_app():
     """Aplikasi ASGI untuk Vercel (variabel VERCEL) atau server ASGI lain (UG_ASGI=1).
     Vercel mencari variabel tingkat atas bernama `app` di main.py. Pada penggunaan lain (komputer, APK) mengembalikan None."""
@@ -427,11 +452,21 @@ def _make_asgi_app():
         import flet.fastapi as flet_fastapi
     except ImportError:
         import flet_fastapi
-    return flet_fastapi.app(
+    asgi = flet_fastapi.app(
         main,
         upload_dir=UPLOAD_DIR,
         secret_key=os.environ.get("FLET_SECRET_KEY", "ugstack-upload-secret-2026"),
     )
+    try:
+        from fastapi.responses import HTMLResponse
+
+        @asgi.get("/api/reset-approve")
+        async def _reset_approve_endpoint(id: int = 0, token: str = ""):
+            code, html = handle_reset_approve_html(id, token)
+            return HTMLResponse(content=html, status_code=code)
+    except Exception:
+        pass
+    return asgi
 
 
 app = _make_asgi_app()

@@ -47,9 +47,8 @@ def _build() -> None:
         return
     from content import i18n_content_en as C
     from content.i18n_ui_pairs import UI_PAIRS, UI_PATTERNS
-    from content.languages import LANGS
+    from content.languages import INFO, LANGS, ROADMAP
     from content.lessons import LESSONS
-    from content.pages import INFO, ROADMAP
     from content.quizzes import CONCEPT_QUIZZES, QUIZZES
     from content.reference import REFERENCE
     from services.modules import SEED_MODULES

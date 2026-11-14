@@ -20,7 +20,7 @@ from components.ui import GREEN, card, chip, dark_button, green_button, page_ban
 from content.languages import LANGS
 from services import audit, auth, backup, csv_io, quiz_admin, reports, settings
 from services.roles import ROLES, is_admin
-from views.account import open_change_avatar
+from views.auth_view import open_change_avatar
 
 TABS = [("ringkasan", "🖥️ Ringkasan"), ("laporan", "📊 Progres Mahasiswa & Dosen"), ("pengguna", "👥 Pengguna"), ("akun", "➕ Buat Akun"),
         ("soal", "📝 Soal Quiz"), ("log", "📜 Log Aktivitas"), ("data", "💾 Data (Cadangan/CSV)")]
@@ -498,7 +498,7 @@ def _tab_users(page, user, mobile, refresh):
                         ft.Text(f"Keterangan: {req.get('reason', '-')}", size=12, color=TEXT_PRIMARY),
                         ft.Row(
                             [
-                                _dark_outlined_btn("Proses & Reset Password", resolve_req, disabled=is_done),
+                                _dark_outlined_btn("✅ Setuju — Proses & Reset Password (10 Menit)", resolve_req, disabled=is_done),
                             ],
                             spacing=8,
                         ),

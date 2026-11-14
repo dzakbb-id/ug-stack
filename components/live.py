@@ -5,7 +5,7 @@ import urllib.parse
 import flet as ft
 
 from components.i18n_ui import translate_tree
-from content.fallback import ABOUT, RESOURCES
+from content.languages import ABOUT, RESOURCES
 from services import web_sources as ws
 from services.i18n import translate
 from .ui import link_text

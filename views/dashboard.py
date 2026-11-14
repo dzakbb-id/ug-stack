@@ -20,7 +20,7 @@ from services import auth, modules as svc, progress, reports
 from services.roles import can_manage_content, is_admin
 from services.storage import StorageError
 from services.validators import BAHASA, LEVELS
-from views.account import open_change_avatar, open_change_username
+from views.auth_view import open_change_avatar, open_change_username
 
 LEVEL_COLORS = {"Beginner": "#04AA6D", "Intermediate": "#F59E0B", "Advanced": "#E53935"}
 SORT_OPTIONS = [("judul", "Judul (A-Z)"), ("durasi", "Durasi"), ("level", "Tingkat")]
