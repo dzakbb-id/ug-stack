@@ -1,13 +1,13 @@
-"""Komponen tema Dashboard Modern Dark-Glass (terinspirasi ModyLearn) untuk Panel Admin, Dosen, dan Mahasiswa."""
+"""Komponen tema Dashboard Minimalis Serasi (Carbon Slate & Emerald) untuk Panel Admin, Dosen, dan Mahasiswa."""
 import flet as ft
 
-BG_MAIN = "#0B0A14"
-BG_SIDEBAR = "#100E1E"
-BG_CARD = "#151226"
-BG_CARD_ALT = "#1B1730"
-BORDER_SUBTLE = "#262240"
-TEXT_PRIMARY = "#F9FAFB"
-TEXT_MUTED = "#9CA3AF"
+BG_MAIN = "#0F1419"
+BG_SIDEBAR = "#141A21"
+BG_CARD = "#182028"
+BG_CARD_ALT = "#1E2832"
+BORDER_SUBTLE = "#2A3642"
+TEXT_PRIMARY = "#F8FAFC"
+TEXT_MUTED = "#94A3B8"
 ACCENT_ORANGE = "#F59E0B"
 ACCENT_GREEN = "#04AA6D"
 
@@ -98,14 +98,14 @@ def top_bar(title: str, subtitle: str, right_controls: list = None) -> ft.Contai
 
 
 def activity_trend_card(extra_bottom: ft.Control = None, col=None) -> ft.Container:
-    """Kartu tren aktivitas bulanan ringan tanpa efek shadow/gradient berat."""
+    """Kartu tren aktivitas bulanan minimalis dengan gradasi warna emerald-teal yang serasi."""
     points = [
-        ("JAN", 0.28, "#8B5CF6"),
-        ("MAR", 0.42, "#A855F7"),
-        ("MEI", 0.88, "#F97316"),
-        ("JUL", 0.56, "#FB923C"),
-        ("SEP", 0.48, "#C084FC"),
-        ("NOV", 0.64, "#F59E0B"),
+        ("JAN", 0.28, "#065F46"),
+        ("MAR", 0.42, "#047857"),
+        ("MEI", 0.88, "#04AA6D"),
+        ("JUL", 0.56, "#10B981"),
+        ("SEP", 0.48, "#0D9488"),
+        ("NOV", 0.64, "#34D399"),
     ]
     bars = []
     for month, ratio, color in points:
@@ -136,11 +136,11 @@ def activity_trend_card(extra_bottom: ft.Control = None, col=None) -> ft.Contain
     )
 
     badge = ft.Container(
-        bgcolor="#271B18",
-        border=ft.border.all(1, "#F59E0B"),
-        border_radius=12,
+        bgcolor="#0E291E",
+        border=ft.border.all(1, ACCENT_GREEN),
+        border_radius=8,
         padding=ft.padding.symmetric(horizontal=10, vertical=4),
-        content=ft.Text("📅 ANALITIK 2026", size=10, weight=ft.FontWeight.BOLD, color="#FBBF24"),
+        content=ft.Text("📅 ANALITIK 2026", size=10, weight=ft.FontWeight.BOLD, color="#34D399"),
     )
 
     body_items = [
@@ -172,12 +172,12 @@ def activity_trend_card(extra_bottom: ft.Control = None, col=None) -> ft.Contain
 
 
 def categories_donut_card(total_modules: int, col=None) -> ft.Container:
-    """Kartu distribusi kategori modul ringan berbasis progress bar datar (tanpa tumpukan ProgressRing)."""
+    """Kartu distribusi kategori modul minimalis berbasis progress bar datar yang serasi."""
     cats = [
-        ("Pengembangan Web", "38%", "#F97316", 0.38),
-        ("Data & Basis Data", "25%", "#8B5CF6", 0.25),
+        ("Pengembangan Web", "38%", "#04AA6D", 0.38),
+        ("Data & Basis Data", "25%", "#0D9488", 0.25),
         ("Umum", "22%", "#10B981", 0.22),
-        ("Sistem", "15%", "#3B82F6", 0.15),
+        ("Sistem", "15%", "#64748B", 0.15),
     ]
     total_banner = ft.Container(
         padding=ft.padding.symmetric(vertical=10, horizontal=14),
@@ -263,7 +263,7 @@ def user_avatar_badge(username: str, avatar_str: str = "", size: int = 38, on_cl
         height=size,
         border_radius=size // 2,
         bgcolor=BG_CARD_ALT,
-        border=ft.border.all(1.5, "#3B345E" if not clean else "#10B981"),
+        border=ft.border.all(1.5, BORDER_SUBTLE if not clean else ACCENT_GREEN),
         alignment=ft.alignment.center,
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
         on_click=on_click,
@@ -274,7 +274,7 @@ def user_avatar_badge(username: str, avatar_str: str = "", size: int = 38, on_cl
 
 
 def sidebar_shell(brand_title: str, nav_buttons: list, user: dict, profile_actions: list, on_avatar_click=None, col=None) -> ft.Container:
-    """Sidebar kiri bergaya ModyLearn dengan logo di atas, menu di tengah, dan kartu profil di bawah."""
+    """Sidebar kiri minimalis dengan identitas di atas, menu di tengah, dan kartu profil di bawah."""
     role_upper = (user.get("role") or "mahasiswa").upper()
     npm_val = (user.get("npm") or "").strip()
     uname_val = (user.get("username") or "").strip()
@@ -295,10 +295,10 @@ def sidebar_shell(brand_title: str, nav_buttons: list, user: dict, profile_actio
                 ft.Container(
                     width=38,
                     height=38,
-                    border_radius=10,
-                    bgcolor="#8B5CF6",
+                    border_radius=8,
+                    bgcolor=ACCENT_GREEN,
                     alignment=ft.alignment.center,
-                    content=ft.Icon(ft.icons.AUTO_AWESOME, color=ft.colors.WHITE, size=20),
+                    content=ft.Icon(ft.icons.CODE_ROUNDED, color=ft.colors.WHITE, size=20),
                 ),
                 ft.Column(
                     [
@@ -374,16 +374,16 @@ def sidebar_shell(brand_title: str, nav_buttons: list, user: dict, profile_actio
 
 
 def sidebar_nav_btn(label: str, active: bool, on_click) -> ft.ElevatedButton:
-    """Tombol navigasi sidebar dengan pendaran oranye hangat saat aktif."""
+    """Tombol navigasi sidebar minimalis dengan aksen emerald saat aktif."""
     return ft.ElevatedButton(
         text=label,
-        bgcolor="#2B1C19" if active else BG_CARD,
-        color="#FBBF24" if active else "#D1D5DB",
+        bgcolor="#0E291E" if active else BG_CARD,
+        color="#34D399" if active else TEXT_PRIMARY,
         width=280,
         style=ft.ButtonStyle(
             padding=ft.padding.symmetric(horizontal=14, vertical=12),
-            shape=ft.RoundedRectangleBorder(radius=12),
-            side=ft.BorderSide(1, ACCENT_ORANGE if active else BORDER_SUBTLE),
+            shape=ft.RoundedRectangleBorder(radius=10),
+            side=ft.BorderSide(1, ACCENT_GREEN if active else BORDER_SUBTLE),
             elevation=0,
         ),
         on_click=on_click,

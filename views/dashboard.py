@@ -79,12 +79,12 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
             avg = sum(r[2] for r in ranking) / len(ranking) if ranking else 0.0
             avg_dsn = sum(r["percent"] for r in lecturers) / len(lecturers) if lecturers else 0.0
             kpi_area.controls = [
-                kpi_glow_card("TOTAL MODUL", str(len(all_modules)), ft.icons.MENU_BOOK_ROUNDED, "#8B5CF6", "📚 Modul"),
-                kpi_glow_card("MODUL AKTIF", str(len(shown)), ft.icons.BAR_CHART_ROUNDED, "#3B82F6", "📚 Daftar Modul"),
+                kpi_glow_card("TOTAL MODUL", str(len(all_modules)), ft.icons.MENU_BOOK_ROUNDED, "#04AA6D", "📚 Modul"),
+                kpi_glow_card("MODUL AKTIF", str(len(shown)), ft.icons.BAR_CHART_ROUNDED, "#0D9488", "📚 Daftar Modul"),
                 kpi_glow_card("TOTAL MAHASISWA", str(len(students)), ft.icons.GROUPS_ROUNDED, "#10B981", "🎓 Mahasiswa"),
                 kpi_glow_card("TOTAL DOSEN", str(len(lecturers)), ft.icons.SCHOOL_ROUNDED, "#F59E0B", "👨‍🏫 Dosen"),
-                kpi_glow_card("RATA-RATA MAHASISWA", f"{avg:.0f}%", ft.icons.INSIGHTS_ROUNDED, "#EC4899", "Progres mahasiswa"),
-                kpi_glow_card("RATA-RATA DOSEN", f"{avg_dsn:.0f}%", ft.icons.STAR_ROUNDED, "#EAB308", "Progres dosen"),
+                kpi_glow_card("RATA-RATA MAHASISWA", f"{avg:.0f}%", ft.icons.INSIGHTS_ROUNDED, "#04AA6D", "Progres mahasiswa"),
+                kpi_glow_card("RATA-RATA DOSEN", f"{avg_dsn:.0f}%", ft.icons.STAR_ROUNDED, "#0D9488", "Progres dosen"),
             ]
             summary.controls = [
                 ft.Text("Ringkasan", weight=ft.FontWeight.BOLD, size=16, color=TEXT_PRIMARY),
@@ -115,12 +115,12 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
             next_lang = find_lang(nxt["bahasa"]) if nxt else None
             weak_lang = find_lang(weak) if weak else None
             kpi_area.controls = [
-                kpi_glow_card("TOTAL MODUL", str(len(ids)), ft.icons.MENU_BOOK_ROUNDED, "#8B5CF6", "📚 Modul"),
-                kpi_glow_card("MODUL SELESAI", f"{n}/{len(ids)}", ft.icons.TASK_ALT_ROUNDED, "#3B82F6", "✓ Selesai"),
+                kpi_glow_card("TOTAL MODUL", str(len(ids)), ft.icons.MENU_BOOK_ROUNDED, "#04AA6D", "📚 Modul"),
+                kpi_glow_card("MODUL SELESAI", f"{n}/{len(ids)}", ft.icons.TASK_ALT_ROUNDED, "#0D9488", "✓ Selesai"),
                 kpi_glow_card("PROGRES BELAJAR", f"{pct:.0f}%", ft.icons.TRENDING_UP_ROUNDED, "#10B981", "Progres"),
                 kpi_glow_card("QUIZ DICOBA", str(sm["attempted"]), ft.icons.QUIZ_ROUNDED, "#F59E0B", "🧪 Percobaan quiz"),
-                kpi_glow_card("SERTIFIKAT TERBIT", str(sm["passed"]), ft.icons.WORKSPACE_PREMIUM_ROUNDED, "#EC4899", "🏅 Sertifikat"),
-                kpi_glow_card("SKOR RATA-RATA", f"{sm.get('avg_score', 0.0):.0f}%", ft.icons.STAR_ROUNDED, "#EAB308", "Skor"),
+                kpi_glow_card("SERTIFIKAT TERBIT", str(sm["passed"]), ft.icons.WORKSPACE_PREMIUM_ROUNDED, "#04AA6D", "🏅 Sertifikat"),
+                kpi_glow_card("SKOR RATA-RATA", f"{sm.get('avg_score', 0.0):.0f}%", ft.icons.STAR_ROUNDED, "#0D9488", "Skor"),
             ]
             outline_style = ft.ButtonStyle(
                 color=TEXT_PRIMARY,
@@ -155,14 +155,14 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
             page.update()
 
     def module_card(m, done):
-        chip_lang = ft.Container(ft.Text(m["bahasa"], size=11, weight=ft.FontWeight.BOLD, color=ft.colors.BLACK),
-                                 bgcolor="#FFF4A3", padding=ft.padding.symmetric(horizontal=8, vertical=3), border_radius=8)
+        chip_lang = ft.Container(ft.Text(m["bahasa"], size=11, weight=ft.FontWeight.BOLD, color="#065F46"),
+                                 bgcolor="#ECFDF5", padding=ft.padding.symmetric(horizontal=8, vertical=3), border_radius=6)
         chip_level = ft.Container(ft.Text(m["level"], size=11, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE),
-                                  bgcolor=LEVEL_COLORS.get(m["level"], "#282A35"),
-                                  padding=ft.padding.symmetric(horizontal=8, vertical=3), border_radius=8)
+                                  bgcolor=LEVEL_COLORS.get(m["level"], "#182028"),
+                                  padding=ft.padding.symmetric(horizontal=8, vertical=3), border_radius=6)
         done_btn = ft.ElevatedButton(
             "✓ Selesai" if done else "Tandai selesai",
-            bgcolor="#04AA6D" if done else "#282A35", color=ft.colors.WHITE,
+            bgcolor="#04AA6D" if done else "#1E2832", color=ft.colors.WHITE,
             style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8), elevation=0),
             on_click=lambda e, mid=m["id"]: toggle(mid))
         if admin:

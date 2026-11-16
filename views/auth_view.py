@@ -84,7 +84,7 @@ def _render_avatar_preview(username: str, avatar_str: str, size: int = 72) -> ft
         width=size,
         height=size,
         border_radius=size // 2,
-        bgcolor="#1B1730",
+        bgcolor="#182028",
         border=ft.border.all(2, "#04AA6D"),
         alignment=ft.alignment.center,
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
@@ -625,7 +625,7 @@ def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial
             ),
             ft.ElevatedButton(
                 "🌐 Kirim via Gmail Web (zetheron.id@gmail.com)",
-                bgcolor="#2563EB",
+                bgcolor="#182028",
                 color=ft.colors.WHITE,
                 on_click=lambda ev, u=gmail_url: _open_mailto(u),
             ),

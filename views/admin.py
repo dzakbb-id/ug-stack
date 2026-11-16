@@ -123,12 +123,12 @@ def _tab_overview(page, user, mobile, refresh):
     avg_dsn = sum(r["percent"] for r in dsn_rows) / len(dsn_rows) if dsn_rows else 0.0
 
     cards = [
-        kpi_glow_card("TOTAL MODUL", str(st["modules"]), ft.icons.MENU_BOOK_ROUNDED, "#8B5CF6", "📚 Modul"),
+        kpi_glow_card("TOTAL MODUL", str(st["modules"]), ft.icons.MENU_BOOK_ROUNDED, "#04AA6D", "📚 Modul"),
         kpi_glow_card("TOTAL MAHASISWA", str(st["users"]["mahasiswa"]), ft.icons.GROUPS_ROUNDED, "#10B981", f"📈 Rata-rata Mahasiswa: {avg_mhs:.0f}%"),
         kpi_glow_card("TOTAL DOSEN", str(st["users"]["dosen"]), ft.icons.SCHOOL_ROUNDED, "#F59E0B", f"📈 Rata-rata Dosen: {avg_dsn:.0f}%"),
-        kpi_glow_card("📝 Soal kustom", str(st["custom_questions"]), ft.icons.QUIZ_ROUNDED, "#3B82F6", f"🛡️ Admin: {st['users']['admin']}"),
-        kpi_glow_card("PERCOBAAN QUIZ", str(st["quiz_attempts"]), ft.icons.INSIGHTS_ROUNDED, "#EC4899", "🧪 Percobaan quiz"),
-        kpi_glow_card("SERTIFIKAT TERBIT", str(st["certificates"]), ft.icons.WORKSPACE_PREMIUM_ROUNDED, "#EAB308", "🏅 Sertifikat terbit"),
+        kpi_glow_card("📝 Soal kustom", str(st["custom_questions"]), ft.icons.QUIZ_ROUNDED, "#0D9488", f"🛡️ Admin: {st['users']['admin']}"),
+        kpi_glow_card("PERCOBAAN QUIZ", str(st["quiz_attempts"]), ft.icons.INSIGHTS_ROUNDED, "#04AA6D", "🧪 Percobaan quiz"),
+        kpi_glow_card("SERTIFIKAT TERBIT", str(st["certificates"]), ft.icons.WORKSPACE_PREMIUM_ROUNDED, "#10B981", "🏅 Sertifikat terbit"),
     ]
 
     prog_preview = ft.Column(
@@ -140,7 +140,7 @@ def _tab_overview(page, user, mobile, refresh):
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            ft.ProgressBar(value=avg_mhs / 100, color="#10B981", bgcolor="#262240", height=7),
+            ft.ProgressBar(value=avg_mhs / 100, color="#10B981", bgcolor=BORDER_SUBTLE, height=7),
             ft.Row(
                 [
                     ft.Text("👨‍🏫 Ringkasan Progres Dosen", size=12, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
@@ -148,7 +148,7 @@ def _tab_overview(page, user, mobile, refresh):
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            ft.ProgressBar(value=avg_dsn / 100, color="#F59E0B", bgcolor="#262240", height=7),
+            ft.ProgressBar(value=avg_dsn / 100, color="#F59E0B", bgcolor=BORDER_SUBTLE, height=7),
         ],
         spacing=6,
     )

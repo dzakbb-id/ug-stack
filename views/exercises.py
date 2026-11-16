@@ -325,7 +325,7 @@ def get_quiz_view(
                     ft.Row(
                         [
                             ft.Row([q_badge, s_badge], spacing=6, wrap=True),
-                            chip(f"Level: {q.get('level', lvl_name)}", "#EDE9FE"),
+                            chip(f"Level: {q.get('level', lvl_name)}", "#ECFDF5", "#065F46"),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -425,8 +425,8 @@ def get_quiz_view(
                                 ft.Row(
                                     [
                                         ft.Text("Waktu Pengerjaan Quiz (10 Menit)", size=14, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
-                                        chip(f"Level: {lvl_name}", "#DCFCE7"),
-                                        chip("🔀 Soal & opsi diacak", "#EDE9FE"),
+                                        chip(f"Level: {lvl_name}", "#ECFDF5", "#065F46"),
+                                        chip("🔀 Soal & opsi diacak", "#F1F5F9", "#334155"),
                                     ],
                                     spacing=8,
                                     wrap=True,
@@ -451,7 +451,7 @@ def get_quiz_view(
     )
 
     lvl_badge_text = next((lbl for lk, lbl, _ in LEVEL_META if lk == lvl_key), lvl_name)
-    # Sticky Floating HUD di kanan atas (page.overlay) agar timer & kotak nomor soal tetap terlihat saat halaman di-scroll
+    # Sticky Floating HUD minimalis di kanan atas (page.overlay) agar timer & kotak nomor soal tetap terlihat saat halaman di-scroll
     floating_hud = ft.Container(
         data="ug_quiz_hud",
         top=68,
@@ -459,9 +459,8 @@ def get_quiz_view(
         width=285 if not mobile else 220,
         bgcolor=ft.colors.SURFACE,
         padding=12,
-        border_radius=12,
+        border_radius=10,
         border=ft.border.all(1.5, GREEN),
-        shadow=ft.BoxShadow(blur_radius=14, color=ft.colors.with_opacity(0.18, ft.colors.BLACK)),
         content=ft.Column(
             [
                 ft.Row(

@@ -46,18 +46,18 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
 
         if is_bot:
             disp_name = "🎧 Customer Service UG-Stack"
-            badge = chip("CS ASISTEN", "#D1FAE5")
+            badge = chip("CS ASISTEN", "#ECFDF5", "#065F46")
         elif role == "admin":
             disp_name = f"🛡️ Admin CS ({full_name or sender})"
-            badge = chip("TIM CS ADMIN", "#FFD2D7")
+            badge = chip("TIM CS ADMIN", "#F1F5F9", "#334155")
         elif role == "dosen":
             disp_name = f"👨‍🏫 {full_name or sender}"
-            badge = chip("TIM DOSEN", "#DBEAFE")
+            badge = chip("TIM DOSEN", "#FEF3C7", "#92400E")
         else:
             disp_name = full_name or sender
             if m.get("npm"):
                 disp_name = f"{disp_name} ({m.get('npm')})"
-            badge = chip("MAHASISWA", "#FFF4A3")
+            badge = chip("MAHASISWA", "#ECFDF5", "#065F46")
 
         header_items = [
             user_avatar_badge(full_name or sender, auth.get_avatar(sender), size=26),

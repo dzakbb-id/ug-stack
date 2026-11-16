@@ -4,7 +4,7 @@ import flet as ft
 from content.languages import LANGS
 
 GREEN = "#04AA6D"
-DARK = "#282A35"
+DARK = "#182028"
 LIGHT_GREEN = ft.colors.PRIMARY_CONTAINER
 SIDEBAR = ft.colors.SURFACE_VARIANT
 
@@ -68,12 +68,12 @@ def link_text(text: str, url: str, size: int = 13, color: str = GREEN) -> ft.Tex
     )
 
 
-def chip(text: str, bg: str = "#FFF4A3", fg: str = ft.colors.BLACK) -> ft.Container:
+def chip(text: str, bg: str = "#ECFDF5", fg: str = "#065F46") -> ft.Container:
     return ft.Container(
         ft.Text(text, size=11, weight=ft.FontWeight.W_600, color=fg),
         bgcolor=bg,
         padding=ft.padding.symmetric(horizontal=10, vertical=4),
-        border_radius=8,
+        border_radius=6,
     )
 
 
@@ -311,19 +311,20 @@ def create_header(
         for l in LANGS
     ]
     sub_nav = ft.Container(
-        bgcolor="#1D2A35",
+        bgcolor="#1E2832",
         padding=ft.padding.symmetric(horizontal=16, vertical=4),
+        border=ft.border.only(bottom=ft.BorderSide(1, "#2A3642")),
         content=ft.Row(sub_buttons, scroll=ft.ScrollMode.AUTO, spacing=4, alignment=ft.MainAxisAlignment.CENTER),
     )
 
-    appbar = ft.AppBar(leading=logo, title=title, center_title=False, bgcolor="#282A35", elevation=0, actions=actions)
+    appbar = ft.AppBar(leading=logo, title=title, center_title=False, bgcolor="#141A21", elevation=0, actions=actions)
     return appbar, sub_nav
 
 
 def create_footer(on_footer_link=None):
     def make_link(text):
         return ft.TextButton(
-            content=ft.Text(text, color=ft.colors.GREY_400, size=13),
+            content=ft.Text(text, color="#94A3B8", size=13),
             on_click=lambda e: on_footer_link(text) if on_footer_link else None,
             style=ft.ButtonStyle(padding=ft.padding.symmetric(horizontal=4, vertical=4)),
         )
@@ -331,7 +332,7 @@ def create_footer(on_footer_link=None):
     def make_col(title, links):
         return ft.Column(
             [
-                ft.Text(title, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE, size=15),
+                ft.Text(title, weight=ft.FontWeight.BOLD, color="#F8FAFC", size=15),
                 ft.Container(height=4),
                 *links,
             ],
@@ -341,7 +342,8 @@ def create_footer(on_footer_link=None):
         )
 
     return ft.Container(
-        bgcolor="#1E262E",
+        bgcolor="#141A21",
+        border=ft.border.only(top=ft.BorderSide(1, "#2A3642")),
         padding=ft.padding.symmetric(horizontal=32, vertical=36),
         content=ft.Column(
             [

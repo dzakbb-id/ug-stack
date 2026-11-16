@@ -29,18 +29,18 @@ _APP_BTN_STYLE = ft.ButtonStyle(
 )
 
 COURSES = [
-    ("HTML", "The building blocks of every webpage", "#D9EEE1"),
-    ("CSS", "Style and layout for web pages", "#FFF4A3"),
-    ("JavaScript", "Interactive and dynamic web pages", "#E7E9EB"),
-    ("Python", "Popular language for web, data & AI", "#F3E5F5"),
-    ("SQL", "Query and manage databases", "#E8EAF6"),
-    ("PHP", "A web server programming language", "#FFD2D7"),
-    ("jQuery", "A JS library for developing web pages", "#E1F5FE"),
-    ("Java", "Object-oriented programming language", "#FFF8E1"),
-    ("C++", "A powerful general-purpose language", "#E8F5E9"),
-    ("C#", "A multi-paradigm programming language", "#F3E5F5"),
-    ("React", "Building user interfaces for web", "#E0F7FA"),
-    ("MySQL", "Relational database management system", "#E1F5FE"),
+    ("HTML", "The building blocks of every webpage", "#F1F5F9"),
+    ("CSS", "Style and layout for web pages", "#F1F5F9"),
+    ("JavaScript", "Interactive and dynamic web pages", "#F1F5F9"),
+    ("Python", "Popular language for web, data & AI", "#ECFDF5"),
+    ("SQL", "Query and manage databases", "#F1F5F9"),
+    ("PHP", "A web server programming language", "#F1F5F9"),
+    ("jQuery", "A JS library for developing web pages", "#F1F5F9"),
+    ("Java", "Object-oriented programming language", "#F1F5F9"),
+    ("C++", "A powerful general-purpose language", "#F1F5F9"),
+    ("C#", "A multi-paradigm programming language", "#F1F5F9"),
+    ("React", "Building user interfaces for web", "#ECFDF5"),
+    ("MySQL", "Relational database management system", "#F1F5F9"),
 ]
 
 SUGGESTIONS = ["flexbox", "list comprehension", "JOIN", "pointer", "useState", "async", "class", "array"]
@@ -100,31 +100,31 @@ def create_hero_section(
     )
 
     badge = ft.Container(
-        content=ft.Text("PRO FEATURES", size=10, weight=ft.FontWeight.BOLD, color=ft.colors.BLACK),
-        bgcolor="#FFF4A3",
+        content=ft.Text("PRO FEATURES", size=10, weight=ft.FontWeight.BOLD, color="#065F46"),
+        bgcolor="#ECFDF5",
         padding=ft.padding.symmetric(horizontal=8, vertical=4),
         border_radius=6,
     )
     top_row = [badge]
     if progress_text:
-        top_row.append(ft.Text(progress_text, color="#00FF66", weight=ft.FontWeight.BOLD, size=12))
+        top_row.append(ft.Text(progress_text, color="#34D399", weight=ft.FontWeight.BOLD, size=12))
 
     feature = lambda t: ft.Row(
-        [ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, color="#04AA6D", size=16), ft.Text(t, color="#E5E9F0", size=13)],
+        [ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, color="#04AA6D", size=16), ft.Text(t, color="#E2E8F0", size=13)],
         spacing=8,
     )
 
     pro_card = ft.Container(
-        bgcolor="#1E262E",
+        bgcolor="#182028",
         padding=24,
         border_radius=12,
-        border=ft.border.all(1, ft.colors.with_opacity(0.2, ft.colors.WHITE)),
+        border=ft.border.all(1, "#2A3642"),
         col={"xs": 12, "md": 6},
         content=ft.Column(
             [
                 ft.Row(top_row, alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
                 ft.Text("Upgrade Your Learning Experience", size=18, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE),
-                ft.Divider(color=ft.colors.with_opacity(0.15, ft.colors.WHITE), height=12),
+                ft.Divider(color="#2A3642", height=12),
                 feature("Progress tracking & analytics"),
                 feature("Ad-free learning environment"),
                 feature("Interactive quizzes & practice"),
@@ -147,7 +147,7 @@ def create_hero_section(
     )
 
     return ft.Container(
-        bgcolor="#282A35",
+        bgcolor="#141A21",
         padding=ft.padding.symmetric(vertical=36, horizontal=32),
         content=ft.ResponsiveRow(
             [left_content, pro_card],
@@ -254,7 +254,7 @@ def create_course_card(title, desc, color_bg, on_select_course=None):
                 ),
                 ft.ElevatedButton(
                     f"Learn {title}",
-                    bgcolor="#282A35",
+                    bgcolor="#182028",
                     color=ft.colors.WHITE,
                     width=160,
                     style=ft.ButtonStyle(
@@ -465,10 +465,10 @@ def create_career_spaces_sections(on_cert_click=None, on_spaces_click=None):
     )
 
     spaces_card = ft.Container(
-        bgcolor="#1E262E",
+        bgcolor="#182028",
         padding=28,
         border_radius=12,
-        border=ft.border.all(1, ft.colors.with_opacity(0.15, ft.colors.WHITE)),
+        border=ft.border.all(1, "#2A3642"),
         col={"xs": 12, "md": 6},
         content=ft.Column(
             [
@@ -560,14 +560,15 @@ def get_tutorials_view(page: ft.Page, mobile: bool, on_open_lang, on_roadmap):
                 content=ft.Column(
                     [
                         ft.Container(
-                            bgcolor=l["color"],
+                            bgcolor="#182028",
                             padding=ft.padding.symmetric(horizontal=18, vertical=14),
+                            border=ft.border.only(bottom=ft.BorderSide(2, GREEN)),
                             border_radius=ft.border_radius.only(top_left=12, top_right=12),
                             content=ft.Row(
                                 [
                                     ft.Container(
                                         content=lang_logo(l["key"], 22),
-                                        bgcolor=ft.colors.WHITE,
+                                        bgcolor="#F8FAFC",
                                         width=34,
                                         height=34,
                                         border_radius=8,
@@ -588,9 +589,9 @@ def get_tutorials_view(page: ft.Page, mobile: bool, on_open_lang, on_roadmap):
                                     ),
                                     ft.Row(
                                         [
-                                            chip(l["level"]),
-                                            chip(l["group"], "#E1F5FE"),
-                                            chip(f"{len(LESSONS[l['key']])} pelajaran", "#E7F9F0"),
+                                            chip(l["level"], "#ECFDF5", "#065F46"),
+                                            chip(l["group"], "#F1F5F9", "#334155"),
+                                            chip(f"{len(LESSONS[l['key']])} pelajaran", "#ECFDF5", "#065F46"),
                                         ],
                                         wrap=True,
                                         spacing=6,
