@@ -637,8 +637,9 @@ class TestEndToEndUI(unittest.TestCase):
         self.assertIsNotNone(admin_code_cli.admin_code.get_secret())
 
     def test_T81_fitur_quiz_level_sticky_timer_kotak_hijau_popup_kunci_dan_bonus_reload(self):
-        """Uji level quiz (Beginner/Intermediate/Professional), sticky HUD timer, kotak soal hijau, bonus +5 menit reload, pop-up nilai, dan kunci jawaban."""
+        """Uji level quiz (Beginner/Intermediate/Professional), sticky HUD timer, kotak soal kuning (sedang proses) & hijau (dijawab), bonus +5 menit reload, pop-up nilai, dan kunci jawaban."""
         from components.ui import GREEN
+        from views.exercises import YELLOW
 
         orig_run_pending = main.run_pending
         main.run_pending = lambda page: [fn() for fn in getattr(page, "_ug_pending", [])]
@@ -663,17 +664,17 @@ class TestEndToEndUI(unittest.TestCase):
             self.assertIn("10:00", hud_texts)
             self.assertIn("Intermediate", hud_texts)
 
-            # 2. Pastikan kotak nomor soal awalnya tidak diberi warna (bgcolor=None), dan berubah menjadi hijau (GREEN) saat dijawab
+            # 2. Pastikan kotak nomor soal awalnya berwarna kuning (YELLOW = sedang proses), dan berubah menjadi hijau (GREEN) saat dijawab
             hud_boxes = [c for c in walk_controls(hud) if isinstance(c, ft.Container) and getattr(c, "tooltip", "") and str(c.tooltip).startswith("Soal ")]
             self.assertEqual(len(hud_boxes), 20)
-            self.assertIsNone(hud_boxes[0].bgcolor)
-            self.assertIsNone(hud_boxes[1].bgcolor)
+            self.assertEqual(hud_boxes[0].bgcolor, YELLOW)
+            self.assertEqual(hud_boxes[1].bgcolor, YELLOW)
 
             rgs = [c for c in walk_controls(page.controls[1]) if isinstance(c, ft.RadioGroup)]
             rgs[0].value = str(page._ug_quiz_questions[0]["answer"])
             rgs[0].on_change(DummyEvent(rgs[0]))
             self.assertEqual(hud_boxes[0].bgcolor, GREEN)
-            self.assertIsNone(hud_boxes[1].bgcolor)
+            self.assertEqual(hud_boxes[1].bgcolor, YELLOW)
 
             # 3. Uji waktu tambahan +5 menit (300 detik) saat web mengalami error / reload
             new_rem = page._ug_quiz_add_error_bonus()

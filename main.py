@@ -389,8 +389,21 @@ def main(page: ft.Page):
             render()
 
     def try_admin_from_route():
-        """Tautan khusus admin dari generator: https://situs/ruang-admin?key=KODE (jalur web; di APK pakai ketukan beruntun)."""
+        """Tautan khusus admin dari generator atau tautan persetujuan reset password (/api/reset-approve?id=...&token=...)."""
         route = getattr(page, "route", "") or ""
+        if "reset-approve" in route or ("id=" in route and "token=" in route):
+            try:
+                import urllib.parse as _up
+                q_part = route.split("?", 1)[1] if "?" in route else route.lstrip("/")
+                qs = _up.parse_qs(q_part)
+                rid = int((qs.get("id") or ["0"])[0])
+                tok = (qs.get("token") or [""])[0]
+                if rid and tok:
+                    ok_r, msg_r, _ = auth.approve_password_reset_by_token(rid, tok)
+                    show_snack(msg_r)
+                    return
+            except Exception:
+                pass
         if "key=" in route and "admin" in route.lower():
             ok, msg, user = auth.login_admin("admin", route)
             if ok:
@@ -443,6 +456,40 @@ def handle_reset_approve_html(req_id: int, token: str) -> tuple[int, str]:
     return 200, html
 
 
+def _install_reset_approve_hook() -> None:
+    """Pasang route /api/reset-approve langsung pada FletStaticFiles agar berjalan di ft.app() maupun ASGI."""
+    try:
+        import urllib.parse as _up
+        from fastapi.responses import HTMLResponse
+        from flet.fastapi.flet_static_files import FletStaticFiles
+
+        if getattr(FletStaticFiles, "_ug_reset_hooked", False):
+            return
+        orig_call = FletStaticFiles.__call__
+
+        async def _wrapped_call(self, scope, receive, send):
+            if scope.get("type") == "http" and scope.get("path", "").rstrip("/") == "/api/reset-approve":
+                qs = _up.parse_qs(scope.get("query_string", b"").decode("utf-8", errors="ignore"))
+                try:
+                    rid = int((qs.get("id") or ["0"])[0])
+                except ValueError:
+                    rid = 0
+                tok = (qs.get("token") or [""])[0]
+                code, html = handle_reset_approve_html(rid, tok)
+                resp = HTMLResponse(content=html, status_code=code)
+                await resp(scope, receive, send)
+                return
+            await orig_call(self, scope, receive, send)
+
+        FletStaticFiles.__call__ = _wrapped_call
+        FletStaticFiles._ug_reset_hooked = True
+    except Exception:
+        pass
+
+
+_install_reset_approve_hook()
+
+
 def _make_asgi_app():
     """Aplikasi ASGI untuk Vercel (variabel VERCEL) atau server ASGI lain (UG_ASGI=1).
     Vercel mencari variabel tingkat atas bernama `app` di main.py. Pada penggunaan lain (komputer, APK) mengembalikan None."""
@@ -484,5 +531,5 @@ if __name__ == "__main__":
     elif is_packaged_app():
         ft.app(target=main, upload_dir=UPLOAD_DIR)
     else:
-        # UG_HOST=0.0.0.0 -> bisa dibuka dari HP lewat Wi-Fi yang sama (http://IP-laptop:8550)
-        ft.app(target=main, view=ft.AppView.WEB_BROWSER, host=os.getenv("UG_HOST", "127.0.0.1"), port=8550, upload_dir=UPLOAD_DIR)
+        # Default 0.0.0.0 agar bisa dibuka baik di laptop (127.0.0.1:8550) maupun dari HP di jaringan Wi-Fi yang sama
+        ft.app(target=main, view=ft.AppView.WEB_BROWSER, host=os.getenv("UG_HOST", "0.0.0.0"), port=8550, upload_dir=UPLOAD_DIR)

@@ -786,8 +786,30 @@ def verify_approve_token(req_id: int, identifier: str, email: str, token: str) -
     return hmac.compare_digest(clean_tok, expected.lower())
 
 
+def _detect_base_url() -> str:
+    for env_key in ("UG_APP_URL", "RENDER_EXTERNAL_URL"):
+        val = (os.getenv(env_key) or "").strip().rstrip("/")
+        if val:
+            return val if val.startswith(("http://", "https://")) else f"https://{val}"
+    vercel_url = (os.getenv("VERCEL_URL") or "").strip().rstrip("/")
+    if vercel_url:
+        return f"https://{vercel_url}"
+    port = (os.getenv("PORT") or "8550").strip()
+    try:
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.settimeout(0.5)
+            s.connect(("8.8.8.8", 80))
+            lan_ip = s.getsockname()[0]
+            if lan_ip and not lan_ip.startswith("127."):
+                return f"http://{lan_ip}:{port}"
+    except Exception:
+        pass
+    return f"http://127.0.0.1:{port}"
+
+
 def build_approve_url(record: dict) -> str:
-    base_url = (os.getenv("UG_APP_URL") or "http://127.0.0.1:8550").rstrip("/")
+    base_url = _detect_base_url()
     req_id = int(record.get("id", 0))
     tok = record.get("approve_token") or _make_approve_token(req_id, str(record.get("identifier", "")), str(record.get("email", "")))
     params = urllib.parse.urlencode({"id": str(req_id), "token": tok})

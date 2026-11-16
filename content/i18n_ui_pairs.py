@@ -507,6 +507,11 @@ UI_PAIRS = [
     ("✅ Setuju — Proses & Reset Password (10 Menit)", "✅ Approve — Process & Reset Password (10 Minutes)"),
     ("🔓 Gunakan Kode Reset (10 Menit)", "🔓 Use Reset Code (10 Minutes)"),
     ("🔓 Sudah dapat email reset (10 menit)? Atur password baru", "🔓 Received reset email (10 minutes)? Set new password"),
+    ("🟢 Sudah Dijawab", "🟢 Answered"),
+    ("🟡 Sedang Proses", "🟡 In Progress"),
+    ("Status Nomor Soal (🟢 Hijau = Dijawab | 🟡 Kuning = Sedang Proses):",
+     "Question Status (🟢 Green = Answered | 🟡 Yellow = In Progress):"),
+    ("⚡ +5 Menit (Pemulihan Error)", "⚡ +5 Minutes (Error Recovery)"),
 ]
 
 # Pola untuk teks dinamis: "{}" mewakili nilai. Urutan "{}" di kedua sisi harus sama.

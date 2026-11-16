@@ -15,6 +15,7 @@ QUIZ_DURATION_MINUTES = 10
 QUIZ_DURATION_SECONDS = QUIZ_DURATION_MINUTES * 60
 RELOAD_BONUS_MINUTES = 5
 RELOAD_BONUS_SECONDS = RELOAD_BONUS_MINUTES * 60
+YELLOW = "#F59E0B"
 
 LEVEL_META = [
     ("beginner", "🌱 Beginner", "#DCFCE7"),
@@ -199,12 +200,24 @@ def get_quiz_view(
     groups, feedback = [], []
     q_controls = []
     q_num_badges = []
+    q_status_badges = []
+    in_process_flags = [False] * len(questions)
     header_box_items = []
     hud_box_items = []
     letters = "ABCD"
 
-    answered_count_text = ft.Text(f"Terjawab: 0 / {len(questions)}", size=12, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE_VARIANT)
-    hud_answered_text = ft.Text(f"Terjawab: 0 / {len(questions)}", size=11, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE_VARIANT)
+    answered_count_text = ft.Text(
+        f"Terjawab: 0 / {len(questions)}",
+        size=12,
+        weight=ft.FontWeight.W_600,
+        color=ft.colors.ON_SURFACE_VARIANT,
+    )
+    hud_answered_text = ft.Text(
+        f"Terjawab: 0 / {len(questions)}",
+        size=11,
+        weight=ft.FontWeight.W_600,
+        color=ft.colors.ON_SURFACE_VARIANT,
+    )
 
     def _scroll_to_q(idx: int):
         try:
@@ -217,39 +230,54 @@ def get_quiz_view(
             width=30,
             height=30,
             border_radius=6,
-            bgcolor=None,
-            border=ft.border.all(1, ft.colors.with_opacity(0.45, ft.colors.OUTLINE)),
+            bgcolor=YELLOW,
+            border=ft.border.all(1, YELLOW),
             alignment=ft.alignment.center,
             ink=True,
             tooltip=f"Soal {idx + 1}",
             on_click=lambda e, i=idx: _scroll_to_q(i),
-            content=ft.Text(str(idx + 1), size=12, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE),
+            content=ft.Text(str(idx + 1), size=12, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE),
         )
 
     def _refresh_question_indicators():
         answered_n = 0
         for idx, rg in enumerate(groups):
-            is_ans = rg.value is not None
+            is_ans = (rg.value is not None) and (not in_process_flags[idx])
             if is_ans:
                 answered_n += 1
+            active_color = GREEN if is_ans else YELLOW
             for box in (header_box_items[idx], hud_box_items[idx]):
-                box.bgcolor = GREEN if is_ans else None
-                box.border = ft.border.all(1, GREEN if is_ans else ft.colors.with_opacity(0.45, ft.colors.OUTLINE))
-                box.content.color = ft.colors.WHITE if is_ans else ft.colors.ON_SURFACE
-                box.content.weight = ft.FontWeight.BOLD if is_ans else ft.FontWeight.W_600
+                box.bgcolor = active_color
+                box.border = ft.border.all(1, active_color)
+                box.content.color = ft.colors.WHITE
+                box.content.weight = ft.FontWeight.BOLD
             q_badge = q_num_badges[idx]
-            q_badge.bgcolor = GREEN if is_ans else None
-            q_badge.border = ft.border.all(1, GREEN if is_ans else ft.colors.with_opacity(0.45, ft.colors.OUTLINE))
-            q_badge.content.color = ft.colors.WHITE if is_ans else ft.colors.ON_SURFACE
-            q_controls[idx].border = ft.border.all(1.5 if is_ans else 1, GREEN if is_ans else ft.colors.with_opacity(0.28, ft.colors.OUTLINE))
+            q_badge.bgcolor = active_color
+            q_badge.border = ft.border.all(1, active_color)
+            q_badge.content.color = ft.colors.WHITE
+            s_badge = q_status_badges[idx]
+            cur_lang = getattr(page, "_ug_lang", ui_lang)
+            s_badge.bgcolor = "#DCFCE7" if is_ans else "#FEF3C7"
+            s_badge.content.value = translate("🟢 Sudah Dijawab" if is_ans else "🟡 Sedang Proses", cur_lang)
+            s_badge.content.color = "#166534" if is_ans else "#92400E"
+            q_controls[idx].border = ft.border.all(1.5, active_color)
 
         cur_lang = getattr(page, "_ug_lang", ui_lang)
         ans_str = translate(f"Terjawab: {answered_n} / {len(questions)}", cur_lang)
         answered_count_text.value = ans_str
         hud_answered_text.value = ans_str
 
-    def _on_select_answer(e=None):
+    def _toggle_in_process(idx: int):
+        if state["finished"]:
+            return
+        in_process_flags[idx] = not in_process_flags[idx]
+        _refresh_question_indicators()
+        page.update()
+
+    def _on_select_answer(e=None, q_idx: int = None):
         try:
+            if q_idx is not None and 0 <= q_idx < len(in_process_flags):
+                in_process_flags[q_idx] = False
             _refresh_question_indicators()
             page.update()
         except Exception:
@@ -264,15 +292,25 @@ def get_quiz_view(
         q_badge = ft.Container(
             padding=ft.padding.symmetric(horizontal=10, vertical=4),
             border_radius=6,
-            bgcolor=None,
-            border=ft.border.all(1, ft.colors.with_opacity(0.45, ft.colors.OUTLINE)),
-            content=ft.Text(f"Soal {i + 1}", size=12, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+            bgcolor=YELLOW,
+            border=ft.border.all(1, YELLOW),
+            content=ft.Text(f"Soal {i + 1}", size=12, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE),
         )
         q_num_badges.append(q_badge)
 
+        s_badge = ft.Container(
+            padding=ft.padding.symmetric(horizontal=10, vertical=4),
+            border_radius=6,
+            bgcolor="#FEF3C7",
+            ink=True,
+            on_click=lambda e, idx=i: _toggle_in_process(idx),
+            content=ft.Text("🟡 Sedang Proses", size=11, weight=ft.FontWeight.W_600, color="#92400E"),
+        )
+        q_status_badges.append(s_badge)
+
         rg = ft.RadioGroup(
             data=q["answer"],
-            on_change=_on_select_answer,
+            on_change=lambda e, idx=i: _on_select_answer(e, idx),
             content=ft.Column(
                 [ft.Radio(value=str(j), label=f"{letters[j]}. {opt}") for j, opt in enumerate(q["options"])],
                 spacing=2,
@@ -286,7 +324,7 @@ def get_quiz_view(
                 [
                     ft.Row(
                         [
-                            q_badge,
+                            ft.Row([q_badge, s_badge], spacing=6, wrap=True),
                             chip(f"Level: {q.get('level', lvl_name)}", "#EDE9FE"),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -300,12 +338,13 @@ def get_quiz_view(
                 spacing=8,
             )
         )
+        q_card.border = ft.border.all(1.5, YELLOW)
         q_card.key = f"quiz_q_{i}"
         q_controls.append(q_card)
 
-    # Ukuran waktu timer diperbesar agar sangat jelas terlihat
-    timer_text = ft.Text("⏱️ Sisa waktu: 10:00", size=22, weight=ft.FontWeight.BOLD, color=GREEN)
-    hud_timer_text = ft.Text("⏱️ Sisa waktu: 10:00", size=20, weight=ft.FontWeight.BOLD, color=GREEN)
+    # Ukuran waktu timer diperbesar agar sangat jelas terlihat dan mengikuti scroll
+    timer_text = ft.Text("⏱️ Sisa waktu: 10:00", size=26, weight=ft.FontWeight.BOLD, color=GREEN)
+    hud_timer_text = ft.Text("⏱️ Sisa waktu: 10:00", size=22, weight=ft.FontWeight.BOLD, color=GREEN)
     timer_bar = ft.ProgressBar(value=1.0, color=GREEN, bgcolor=ft.colors.with_opacity(0.2, ft.colors.OUTLINE), height=8)
     bonus_banner = ft.Container(
         visible=False,
@@ -337,13 +376,18 @@ def get_quiz_view(
                 )
                 for lk, llabel, _ in LEVEL_META
             ],
+            ft.OutlinedButton(
+                "⚡ +5 Menit (Pemulihan Error)",
+                height=32,
+                on_click=lambda e: (add_error_reload_bonus(), page.update()),
+            ),
         ],
         spacing=8,
         wrap=True,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
-    # Panel kotak-kotak nomor soal di atas kanan (hijau bila sudah dijawab, tanpa warna bila belum dijawab)
+    # Panel kotak-kotak nomor soal di atas kanan (Hijau = Sudah Dijawab, Kuning = Sedang Proses)
     right_status_panel = ft.Container(
         padding=12,
         border_radius=10,
@@ -360,7 +404,11 @@ def get_quiz_view(
                     spacing=12,
                     wrap=True,
                 ),
-                ft.Text("Status Nomor Soal (Hijau = Sudah Dijawab):", size=11, color=ft.colors.ON_SURFACE_VARIANT),
+                ft.Text(
+                    "Status Nomor Soal (🟢 Hijau = Dijawab | 🟡 Kuning = Sedang Proses):",
+                    size=11,
+                    color=ft.colors.ON_SURFACE_VARIANT,
+                ),
                 ft.Row(header_box_items, spacing=5, run_spacing=5, wrap=True),
             ],
             spacing=8,
