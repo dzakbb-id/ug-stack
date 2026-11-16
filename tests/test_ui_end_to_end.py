@@ -656,13 +656,20 @@ class TestEndToEndUI(unittest.TestCase):
             start_btns = find_buttons(page.controls[1], "Mulai quiz")
             start_btns[0].on_click(DummyEvent(start_btns[0]))
 
-            # 1. Pastikan sticky HUD terpasang di page.overlay agar tetap terlihat saat scroll
+            # 1. Pastikan sticky HUD terpasang di page.overlay agar tetap terlihat saat scroll dan bisa di-minimize
             huds = [c for c in page.overlay if getattr(c, "data", None) == "ug_quiz_hud"]
             self.assertEqual(len(huds), 1)
             hud = huds[0]
             hud_texts = " ".join(str(getattr(c, "value", "") or "") for c in walk_controls(hud) if isinstance(c, ft.Text))
             self.assertIn("10:00", hud_texts)
             self.assertIn("Intermediate", hud_texts)
+
+            min_btns = [c for c in walk_controls(hud) if isinstance(c, ft.IconButton)]
+            self.assertEqual(len(min_btns), 1)
+            min_btns[0].on_click(DummyEvent(min_btns[0]))
+            self.assertFalse(hud.content.controls[1].visible)
+            min_btns[0].on_click(DummyEvent(min_btns[0]))
+            self.assertTrue(hud.content.controls[1].visible)
 
             # 2. Pastikan kotak nomor soal awalnya berwarna kuning (YELLOW = sedang proses), dan berubah menjadi hijau (GREEN) saat dijawab
             hud_boxes = [c for c in walk_controls(hud) if isinstance(c, ft.Container) and getattr(c, "tooltip", "") and str(c.tooltip).startswith("Soal ")]

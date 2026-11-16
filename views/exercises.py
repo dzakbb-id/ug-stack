@@ -451,7 +451,40 @@ def get_quiz_view(
     )
 
     lvl_badge_text = next((lbl for lk, lbl, _ in LEVEL_META if lk == lvl_key), lvl_name)
-    # Sticky Floating HUD minimalis di kanan atas (page.overlay) agar timer & kotak nomor soal tetap terlihat saat halaman di-scroll
+    state["hud_minimized"] = False
+    hud_body = ft.Column(
+        [
+            ft.Row([chip(lvl_badge_text, "#ECFDF5", "#065F46"), hud_answered_text], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
+            ft.Row(hud_box_items, spacing=4, run_spacing=4, wrap=True),
+        ],
+        spacing=6,
+        tight=True,
+        visible=True,
+    )
+
+    def _toggle_hud_minimize(e=None):
+        minimized = not state.get("hud_minimized", False)
+        state["hud_minimized"] = minimized
+        hud_body.visible = not minimized
+        floating_hud.width = (215 if not mobile else 190) if minimized else (285 if not mobile else 220)
+        floating_hud.padding = ft.padding.symmetric(horizontal=10, vertical=6) if minimized else 12
+        cur_lang = getattr(page, "_ug_lang", ui_lang)
+        hud_toggle_btn.icon = ft.icons.EXPAND_MORE if minimized else ft.icons.EXPAND_LESS
+        hud_toggle_btn.tooltip = translate("Perbesar panel timer" if minimized else "Perkecil panel timer", cur_lang)
+        page.update()
+
+    hud_toggle_btn = ft.IconButton(
+        icon=ft.icons.EXPAND_LESS,
+        icon_size=18,
+        icon_color=ft.colors.ON_SURFACE,
+        tooltip="Perkecil panel timer",
+        width=28,
+        height=28,
+        style=ft.ButtonStyle(padding=0),
+        on_click=_toggle_hud_minimize,
+    )
+
+    # Sticky Floating HUD minimalis di kanan atas (page.overlay) agar timer & kotak nomor soal tetap terlihat saat halaman di-scroll dan bisa di-minimize
     floating_hud = ft.Container(
         data="ug_quiz_hud",
         top=68,
@@ -466,13 +499,12 @@ def get_quiz_view(
                 ft.Row(
                     [
                         hud_timer_text,
-                        chip(lvl_badge_text, "#DCFCE7"),
+                        hud_toggle_btn,
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                hud_answered_text,
-                ft.Row(hud_box_items, spacing=4, run_spacing=4, wrap=True),
+                hud_body,
             ],
             spacing=6,
             tight=True,

@@ -512,6 +512,8 @@ UI_PAIRS = [
     ("Status Nomor Soal (🟢 Hijau = Dijawab | 🟡 Kuning = Sedang Proses):",
      "Question Status (🟢 Green = Answered | 🟡 Yellow = In Progress):"),
     ("⚡ +5 Menit (Pemulihan Error)", "⚡ +5 Minutes (Error Recovery)"),
+    ("Perkecil panel timer", "Minimize timer panel"),
+    ("Perbesar panel timer", "Expand timer panel"),
 ]
 
 # Pola untuk teks dinamis: "{}" mewakili nilai. Urutan "{}" di kedua sisi harus sama.
