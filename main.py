@@ -39,8 +39,53 @@ NAV_OF = {
 
 def main(page: ft.Page):
     page.title = "UG-Stack - Belajar Coding"
-    page.theme = ft.Theme(color_scheme_seed="#04AA6D")
-    page.dark_theme = ft.Theme(color_scheme_seed="#04AA6D")
+    page.theme = ft.Theme(
+        color_scheme=ft.ColorScheme(
+            primary="#18181B",
+            on_primary="#FFFFFF",
+            primary_container="#F4F4F5",
+            on_primary_container="#0A0A0A",
+            secondary="#3F3F46",
+            on_secondary="#FFFFFF",
+            secondary_container="#E4E4E7",
+            on_secondary_container="#18181B",
+            background="#FAFAFA",
+            on_background="#0A0A0A",
+            surface="#FFFFFF",
+            on_surface="#0A0A0A",
+            surface_variant="#F4F4F5",
+            on_surface_variant="#52525B",
+            outline="#E4E4E7",
+            outline_variant="#F4F4F5",
+            error="#DC2626",
+            on_error="#FFFFFF",
+            surface_tint="#FFFFFF",
+        )
+    )
+    page.dark_theme = ft.Theme(
+        color_scheme=ft.ColorScheme(
+            primary="#FAFAFA",
+            on_primary="#0A0A0A",
+            primary_container="#18181B",
+            on_primary_container="#FAFAFA",
+            secondary="#D4D4D8",
+            on_secondary="#0A0A0A",
+            secondary_container="#27272A",
+            on_secondary_container="#FAFAFA",
+            background="#0A0A0A",
+            on_background="#FAFAFA",
+            surface="#121212",
+            on_surface="#FAFAFA",
+            surface_variant="#1C1C1F",
+            on_surface_variant="#A1A1AA",
+            outline="#262626",
+            outline_variant="#1C1C1F",
+            error="#EF4444",
+            on_error="#FFFFFF",
+            surface_tint="#121212",
+        )
+    )
+    page.bgcolor = ft.colors.BACKGROUND
     page.padding = 0
     page.spacing = 0
     page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
@@ -429,9 +474,9 @@ def handle_reset_approve_html(req_id: int, token: str) -> tuple[int, str]:
     if not ok or not rec:
         html = (
             "<!doctype html><html><head><meta charset='utf-8'><title>UGStack Reset Password</title></head>"
-            "<body style='font-family:Arial,sans-serif;padding:32px;background:#0f172a;color:#f8fafc;'>"
-            "<div style='max-width:520px;margin:0 auto;padding:24px;background:#1e293b;border-radius:12px;'>"
-            f"<h2 style='color:#ef4444;margin-top:0;'>✗ Gagal Menyetujui Reset Password</h2><p>{msg}</p>"
+            "<body style='font-family:Inter,system-ui,sans-serif;padding:32px;background:#0A0A0A;color:#FAFAFA;'>"
+            "<div style='max-width:520px;margin:0 auto;padding:24px;background:#121212;border:1px solid #262626;border-radius:10px;'>"
+            f"<h2 style='color:#EF4444;margin-top:0;'>✗ Gagal Menyetujui Reset Password</h2><p style='color:#A1A1AA;'>{msg}</p>"
             "</div></body></html>"
         )
         return 400, html
@@ -440,17 +485,17 @@ def handle_reset_approve_html(req_id: int, token: str) -> tuple[int, str]:
     reply_mailto = rec.get("reply_mailto", "")
     html = (
         "<!doctype html><html><head><meta charset='utf-8'><title>Reset Password Disetujui</title></head>"
-        "<body style='font-family:Arial,sans-serif;padding:32px;background:#0f172a;color:#f8fafc;'>"
-        "<div style='max-width:560px;margin:0 auto;padding:24px;background:#1e293b;border:2px solid #04AA6D;border-radius:12px;'>"
-        "<h2 style='color:#10b981;margin-top:0;'>✅ Reset Password Disetujui (Berlaku 10 Menit)</h2>"
-        f"<p>{msg}</p>"
-        f"<p>Username / NPM: <b>{rec.get('matched_username', '')}</b><br>"
-        f"Password Sementara (10 Menit): <b style='color:#10b981;'>{rec.get('temp_password', '')}</b><br>"
+        "<body style='font-family:Inter,system-ui,sans-serif;padding:32px;background:#0A0A0A;color:#FAFAFA;'>"
+        "<div style='max-width:560px;margin:0 auto;padding:24px;background:#121212;border:1px solid #262626;border-radius:10px;'>"
+        "<h2 style='color:#FAFAFA;margin-top:0;'>✅ Reset Password Disetujui (Berlaku 10 Menit)</h2>"
+        f"<p style='color:#A1A1AA;'>{msg}</p>"
+        f"<p style='line-height:1.7;'>Username / NPM: <b>{rec.get('matched_username', '')}</b><br>"
+        f"Password Sementara (10 Menit): <b style='color:#FAFAFA;background:#27272A;padding:2px 6px;border-radius:4px;'>{rec.get('temp_password', '')}</b><br>"
         f"Kode Reset (10 Menit): <code>{rec.get('reset_token', '')}</code><br>"
         f"Email Tujuan: <b>{rec.get('email', '')}</b></p>"
         f"<div style='margin-top:20px;'>"
-        f"<a href='{reply_gmail}' style='display:inline-block;padding:10px 18px;background:#04AA6D;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;margin-right:8px;'>📧 Buka Balasan Gmail</a>"
-        f"<a href='{reply_mailto}' style='display:inline-block;padding:10px 18px;background:#334155;color:#fff;text-decoration:none;border-radius:8px;'>✉️ Buka Aplikasi Email</a>"
+        f"<a href='{reply_gmail}' style='display:inline-block;padding:10px 18px;background:#FAFAFA;color:#0A0A0A;text-decoration:none;border-radius:8px;font-weight:bold;margin-right:8px;'>📧 Buka Balasan Gmail</a>"
+        f"<a href='{reply_mailto}' style='display:inline-block;padding:10px 18px;background:#1C1C1F;color:#FAFAFA;border:1px solid #262626;text-decoration:none;border-radius:8px;'>✉️ Buka Aplikasi Email</a>"
         f"</div></div></body></html>"
     )
     return 200, html

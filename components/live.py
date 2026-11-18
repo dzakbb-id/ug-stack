@@ -56,11 +56,11 @@ def source_panel(page, title, emoji, source_label, source_url, loader, render_it
         translate_tree(body, ui_lang)
         note = ft.Text(translate(STATUS_TEXT.get(cached_status, ""), ui_lang), size=11, color=ft.colors.ON_SURFACE_VARIANT)
         return ft.Container(
-            col=col or {"xs": 12, "md": 6}, bgcolor=ft.colors.SURFACE, padding=20, border_radius=12,
-            border=ft.border.all(1, ft.colors.with_opacity(0.18, ft.colors.OUTLINE)),
+            col=col or {"xs": 12, "md": 6}, bgcolor=ft.colors.SURFACE, padding=20, border_radius=10,
+            border=ft.border.all(1, ft.colors.OUTLINE),
             content=ft.Column([
                 ft.Text(f"{emoji} {translate(title, ui_lang)}", size=16, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
-                ft.Divider(height=6, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)),
+                ft.Divider(height=6, color=ft.colors.OUTLINE),
                 body, note,
                 link_text(translate(f"Sumber: {source_label} ↗", ui_lang), source_url, size=11, color=ft.colors.ON_SURFACE_VARIANT),
             ], spacing=8))
@@ -80,7 +80,7 @@ def source_panel(page, title, emoji, source_label, source_url, loader, render_it
                     data = None
         if data is None:
             body.controls = [ft.Text(translate("Tidak dapat memuat konten. Periksa koneksi internet lalu muat ulang halaman.", ui_lang),
-                                     size=12, color=ft.colors.RED_700)]
+                                     size=12, color=ft.colors.ERROR)]
         else:
             _PANEL_MEM[cache_key] = (data, status)
             items = data if isinstance(data, list) else [data]
@@ -96,11 +96,11 @@ def source_panel(page, title, emoji, source_label, source_url, loader, render_it
 
     schedule(page, work)
     return ft.Container(
-        col=col or {"xs": 12, "md": 6}, bgcolor=ft.colors.SURFACE, padding=20, border_radius=12,
-        border=ft.border.all(1, ft.colors.with_opacity(0.18, ft.colors.OUTLINE)),
+        col=col or {"xs": 12, "md": 6}, bgcolor=ft.colors.SURFACE, padding=20, border_radius=10,
+        border=ft.border.all(1, ft.colors.OUTLINE),
         content=ft.Column([
             ft.Text(f"{emoji} {title}", size=16, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
-            ft.Divider(height=6, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)),
+            ft.Divider(height=6, color=ft.colors.OUTLINE),
             body, note,
             link_text(f"Sumber: {source_label} ↗", source_url, size=11, color=ft.colors.ON_SURFACE_VARIANT),
         ], spacing=8))
@@ -137,10 +137,10 @@ def r_doc(i):
 
 def static_panel(title: str, emoji: str, items: list, col=None) -> ft.Container:
     return ft.Container(
-        col=col or {"xs": 12, "md": 6}, bgcolor=ft.colors.SURFACE, padding=20, border_radius=12,
-        border=ft.border.all(1, ft.colors.with_opacity(0.18, ft.colors.OUTLINE)),
-        content=ft.Column([ft.Text(f"{emoji} {title}", size=16, weight=ft.FontWeight.BOLD),
-                           ft.Divider(height=6, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)),
+        col=col or {"xs": 12, "md": 6}, bgcolor=ft.colors.SURFACE, padding=20, border_radius=10,
+        border=ft.border.all(1, ft.colors.OUTLINE),
+        content=ft.Column([ft.Text(f"{emoji} {title}", size=16, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                           ft.Divider(height=6, color=ft.colors.OUTLINE),
                            *[r_doc(i) for i in items]], spacing=10))
 
 

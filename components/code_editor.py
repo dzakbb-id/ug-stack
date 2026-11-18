@@ -36,6 +36,7 @@ HOME_TABS = ("HTML", "CSS", "JavaScript", "Python", "SQL")
 _TAB_STYLE = ft.ButtonStyle(
     shape=ft.RoundedRectangleBorder(radius=8),
     padding=ft.padding.symmetric(horizontal=16, vertical=10),
+    side=ft.BorderSide(1, ft.colors.OUTLINE),
     elevation=0,
 )
 
@@ -46,7 +47,7 @@ def get_samples(ui_lang: str = "id") -> dict:
 
 def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
     samples = get_samples(ui_lang)
-    code_text = ft.Text(samples["HTML"], font_family="monospace", color="#00FF66", size=13, selectable=True)
+    code_text = ft.Text(samples["HTML"], font_family="monospace", color="#FAFAFA", size=13, selectable=True)
     active_lang = {"value": "HTML"}
 
     def change_tab(lang):
@@ -54,8 +55,8 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
         code_text.value = samples[lang]
         for btn in tab_buttons.controls:
             if btn.text == lang:
-                btn.bgcolor = "#04AA6D"
-                btn.color = ft.colors.WHITE
+                btn.bgcolor = ft.colors.PRIMARY
+                btn.color = ft.colors.ON_PRIMARY
             else:
                 btn.bgcolor = ft.colors.SURFACE
                 btn.color = ft.colors.ON_SURFACE
@@ -79,8 +80,8 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
             ft.ElevatedButton(
                 lang,
                 on_click=lambda e, l=lang: change_tab(l),
-                bgcolor="#04AA6D" if i == 0 else ft.colors.SURFACE,
-                color=ft.colors.WHITE if i == 0 else ft.colors.ON_SURFACE,
+                bgcolor=ft.colors.PRIMARY if i == 0 else ft.colors.SURFACE,
+                color=ft.colors.ON_PRIMARY if i == 0 else ft.colors.ON_SURFACE,
                 style=_TAB_STYLE,
             )
             for i, lang in enumerate(HOME_TABS)
@@ -92,6 +93,7 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
 
     return ft.Container(
         bgcolor=ft.colors.SURFACE_VARIANT,
+        border=ft.border.only(top=ft.BorderSide(1, ft.colors.OUTLINE), bottom=ft.BorderSide(1, ft.colors.OUTLINE)),
         padding=ft.padding.symmetric(vertical=32, horizontal=32),
         content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -113,8 +115,8 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
                 tab_buttons,
                 ft.Container(
                     bgcolor=ft.colors.SURFACE,
-                    border_radius=12,
-                    border=ft.border.all(1, ft.colors.with_opacity(0.18, ft.colors.OUTLINE)),
+                    border_radius=10,
+                    border=ft.border.all(1, ft.colors.OUTLINE),
                     padding=22,
                     content=ft.Column(
                         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -128,7 +130,8 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             ),
                             ft.Container(
-                                bgcolor="#1E1F26",
+                                bgcolor="#121212",
+                                border=ft.border.all(1, "#262626"),
                                 padding=16,
                                 border_radius=8,
                                 content=ft.Column([code_text], spacing=0),
@@ -137,8 +140,8 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
                                 [
                                     ft.ElevatedButton(
                                         "Coba Sendiri ❯",
-                                        bgcolor="#04AA6D",
-                                        color=ft.colors.WHITE,
+                                        bgcolor=ft.colors.PRIMARY,
+                                        color=ft.colors.ON_PRIMARY,
                                         style=ft.ButtonStyle(
                                             shape=ft.RoundedRectangleBorder(radius=8),
                                             padding=ft.padding.symmetric(horizontal=22, vertical=12),

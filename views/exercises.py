@@ -65,12 +65,13 @@ def get_exercises_view(page: ft.Page, user, mobile: bool, on_open_quiz, on_tryit
                 btns.append(
                     ft.ElevatedButton(
                         llabel,
-                        bgcolor=GREEN if is_act else ft.colors.SURFACE_VARIANT,
-                        color=ft.colors.WHITE if is_act else ft.colors.ON_SURFACE,
+                        bgcolor=ft.colors.PRIMARY if is_act else ft.colors.SURFACE_VARIANT,
+                        color=ft.colors.ON_PRIMARY if is_act else ft.colors.ON_SURFACE,
                         height=30,
                         style=ft.ButtonStyle(
                             padding=ft.padding.symmetric(horizontal=10, vertical=4),
                             shape=ft.RoundedRectangleBorder(radius=8),
+                            side=ft.BorderSide(1, ft.colors.PRIMARY if is_act else ft.colors.OUTLINE),
                             elevation=0,
                         ),
                         on_click=lambda e, k=lang_k, lv=lk, h=holder: _select_level(k, lv, h),
@@ -343,19 +344,20 @@ def get_quiz_view(
         q_controls.append(q_card)
 
     # Ukuran waktu timer diperbesar agar sangat jelas terlihat dan mengikuti scroll
-    timer_text = ft.Text("⏱️ Sisa waktu: 10:00", size=26, weight=ft.FontWeight.BOLD, color=GREEN)
-    hud_timer_text = ft.Text("⏱️ Sisa waktu: 10:00", size=22, weight=ft.FontWeight.BOLD, color=GREEN)
-    timer_bar = ft.ProgressBar(value=1.0, color=GREEN, bgcolor=ft.colors.with_opacity(0.2, ft.colors.OUTLINE), height=8)
+    timer_text = ft.Text("⏱️ Sisa waktu: 10:00", size=24, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE)
+    hud_timer_text = ft.Text("⏱️ Sisa waktu: 10:00", size=20, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE)
+    timer_bar = ft.ProgressBar(value=1.0, color=ft.colors.PRIMARY, bgcolor=ft.colors.OUTLINE, height=6)
     bonus_banner = ft.Container(
         visible=False,
-        bgcolor="#DBEAFE",
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border=ft.border.all(1, ft.colors.OUTLINE),
         padding=ft.padding.symmetric(horizontal=12, vertical=8),
         border_radius=8,
         content=ft.Text(
             "⚡ Pemulihan Reload/Gangguan: Waktu tambahan +5 menit telah diberikan!",
             size=12,
             weight=ft.FontWeight.BOLD,
-            color="#1E3A8A",
+            color=ft.colors.ON_SURFACE,
         ),
     )
 
@@ -365,10 +367,14 @@ def get_quiz_view(
             *[
                 ft.ElevatedButton(
                     llabel,
-                    bgcolor=GREEN if lk == lvl_key else ft.colors.SURFACE_VARIANT,
-                    color=ft.colors.WHITE if lk == lvl_key else ft.colors.ON_SURFACE,
+                    bgcolor=ft.colors.PRIMARY if lk == lvl_key else ft.colors.SURFACE_VARIANT,
+                    color=ft.colors.ON_PRIMARY if lk == lvl_key else ft.colors.ON_SURFACE,
                     height=32,
-                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8), elevation=0),
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        side=ft.BorderSide(1, ft.colors.PRIMARY if lk == lvl_key else ft.colors.OUTLINE),
+                        elevation=0,
+                    ),
                     on_click=lambda e, lv=lk: (
                         setattr(page, "_ug_quiz_token", None),
                         _call_open_quiz(on_retry, key, lv),
@@ -390,8 +396,9 @@ def get_quiz_view(
     # Panel kotak-kotak nomor soal di atas kanan (Hijau = Sudah Dijawab, Kuning = Sedang Proses)
     right_status_panel = ft.Container(
         padding=12,
-        border_radius=10,
-        border=ft.border.all(1, ft.colors.with_opacity(0.3, ft.colors.OUTLINE)),
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_radius=8,
+        border=ft.border.all(1, ft.colors.OUTLINE),
         content=ft.Column(
             [
                 ft.Row(
@@ -425,8 +432,8 @@ def get_quiz_view(
                                 ft.Row(
                                     [
                                         ft.Text("Waktu Pengerjaan Quiz (10 Menit)", size=14, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
-                                        chip(f"Level: {lvl_name}", "#ECFDF5", "#065F46"),
-                                        chip("🔀 Soal & opsi diacak", "#F1F5F9", "#334155"),
+                                        chip(f"Level: {lvl_name}"),
+                                        chip("🔀 Soal & opsi diacak"),
                                     ],
                                     spacing=8,
                                     wrap=True,
@@ -454,7 +461,7 @@ def get_quiz_view(
     state["hud_minimized"] = False
     hud_body = ft.Column(
         [
-            ft.Row([chip(lvl_badge_text, "#ECFDF5", "#065F46"), hud_answered_text], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
+            ft.Row([chip(lvl_badge_text), hud_answered_text], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
             ft.Row(hud_box_items, spacing=4, run_spacing=4, wrap=True),
         ],
         spacing=6,
@@ -493,7 +500,7 @@ def get_quiz_view(
         bgcolor=ft.colors.SURFACE,
         padding=12,
         border_radius=10,
-        border=ft.border.all(1.5, GREEN),
+        border=ft.border.all(1, ft.colors.OUTLINE),
         content=ft.Column(
             [
                 ft.Row(
@@ -521,7 +528,7 @@ def get_quiz_view(
         rem_sec = max(0, min(max_dur, int(rem_sec)))
         state["remaining"] = rem_sec
         mm, ss = divmod(rem_sec, 60)
-        t_color = GREEN if rem_sec > 120 else ("#F59E0B" if rem_sec > 60 else "#E53935")
+        t_color = ft.colors.ON_SURFACE if rem_sec > 120 else ("#F59E0B" if rem_sec > 60 else ft.colors.ERROR)
         cur_lang = getattr(page, "_ug_lang", ui_lang)
         txt = translate(f"⏱️ Sisa waktu: {mm:02d}:{ss:02d}", cur_lang)
         timer_text.value = txt
@@ -529,7 +536,7 @@ def get_quiz_view(
         hud_timer_text.value = txt
         hud_timer_text.color = t_color
         timer_bar.value = rem_sec / max_dur
-        timer_bar.color = t_color
+        timer_bar.color = ft.colors.PRIMARY if rem_sec > 120 else t_color
 
     def add_error_reload_bonus(e=None):
         """Tambahkan waktu +5 menit (300 detik) apabila web mengalami error atau bug reload saat quiz aktif."""
@@ -568,8 +575,8 @@ def get_quiz_view(
         actions = [
             ft.ElevatedButton(
                 "📖 Lihat Kunci Jawaban & Penjelasan",
-                bgcolor=GREEN,
-                color=ft.colors.WHITE,
+                bgcolor=ft.colors.PRIMARY,
+                color=ft.colors.ON_PRIMARY,
                 on_click=lambda e: (setattr(page.dialog, "open", False), page.update()),
             ),
             ft.OutlinedButton(
@@ -586,8 +593,8 @@ def get_quiz_view(
                 0,
                 ft.ElevatedButton(
                     "Lihat sertifikat ❯",
-                    bgcolor="#0D9488",
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.colors.PRIMARY,
+                    color=ft.colors.ON_PRIMARY,
                     on_click=lambda e: (
                         setattr(page.dialog, "open", False),
                         setattr(page, "_ug_quiz_token", None),
@@ -597,27 +604,28 @@ def get_quiz_view(
             )
         page.dialog = ft.AlertDialog(
             modal=True,
-            shape=ft.RoundedRectangleBorder(radius=16),
+            shape=ft.RoundedRectangleBorder(radius=12),
             title=ft.Text("🎉 Quiz Selesai!", weight=ft.FontWeight.BOLD),
             content=ft.Container(
                 width=max(260, min(420, (page.width or 450) - 60)),
                 content=ft.Column(
                     [
                         ft.Container(
-                            bgcolor="#C8E6C9" if passed else "#FFE0B2",
+                            bgcolor=ft.colors.SURFACE_VARIANT,
+                            border=ft.border.all(1, ft.colors.OUTLINE),
                             padding=16,
-                            border_radius=12,
+                            border_radius=10,
                             content=ft.Column(
                                 [
                                     ft.Text(
                                         f"Nilai: {res['percent']:.0f}%  ({res['correct']} dari {res['total']} benar)",
                                         size=20,
                                         weight=ft.FontWeight.BOLD,
-                                        color=ft.colors.BLACK,
+                                        color=ft.colors.ON_SURFACE,
                                     ),
-                                    ft.Text(f"Level: {res.get('level', lvl_name)}", size=13, weight=ft.FontWeight.W_600, color="#212121"),
-                                    ft.Text(f"⏱️ Waktu pengerjaan: {el_str} dari {max_mm:02d}:00", size=13, color="#212121"),
-                                    ft.Text(verdict, size=13, color="#212121"),
+                                    ft.Text(f"Level: {res.get('level', lvl_name)}", size=13, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE_VARIANT),
+                                    ft.Text(f"⏱️ Waktu pengerjaan: {el_str} dari {max_mm:02d}:00", size=13, color=ft.colors.ON_SURFACE_VARIANT),
+                                    ft.Text(verdict, size=13, color=ft.colors.ON_SURFACE),
                                 ],
                                 spacing=4,
                             ),
@@ -651,17 +659,17 @@ def get_quiz_view(
         el_str = f"{el_mm:02d}:{el_ss:02d}"
         if auto_timeout:
             timer_text.value = "⏰ Waktu habis! (00:00)"
-            timer_text.color = "#E53935"
+            timer_text.color = ft.colors.ERROR
             hud_timer_text.value = "⏰ Waktu habis! (00:00)"
-            hud_timer_text.color = "#E53935"
+            hud_timer_text.color = ft.colors.ERROR
             timer_bar.value = 0.0
-            timer_bar.color = "#E53935"
+            timer_bar.color = ft.colors.ERROR
         else:
             done_txt = f"✓ Selesai ({el_str} / {max_mm:02d}:00)"
             timer_text.value = done_txt
-            timer_text.color = GREEN
+            timer_text.color = ft.colors.ON_SURFACE
             hud_timer_text.value = done_txt
-            hud_timer_text.color = GREEN
+            hud_timer_text.color = ft.colors.ON_SURFACE
 
         res = quiz_service.grade(key, answers, questions=questions, level=lvl_key)
         for i, d in enumerate(res["details"]):
@@ -670,28 +678,28 @@ def get_quiz_view(
             explain_line = f"💡 Penjelasan: {d['explain']}"
             prefix = "✓ Benar. " if d["correct"] else "✗ Kurang tepat. "
             feedback[i].value = f"{prefix}{ans_key_line} — {explain_line}"
-            feedback[i].color = "#1B7F3B" if d["correct"] else "#C62828"
+            feedback[i].color = GREEN if d["correct"] else ft.colors.ERROR
             feedback[i].weight = ft.FontWeight.W_600
 
         submit_btn.disabled = True
-        color = "#C8E6C9" if res["passed"] else "#FFE0B2"
         verdict = "Selamat, Anda lulus! 🎉" if res["passed"] else f"Belum lulus (minimal {PASS_PERCENT}%). Pelajari lagi lalu coba kembali."
         controls = [
             ft.Container(
-                bgcolor=color,
+                bgcolor=ft.colors.SURFACE_VARIANT,
+                border=ft.border.all(1, ft.colors.OUTLINE),
                 padding=18,
-                border_radius=12,
+                border_radius=10,
                 content=ft.Column(
                     [
                         ft.Text(
                             f"Nilai: {res['percent']:.0f}%  ({res['correct']} dari {res['total']} benar)",
                             size=20,
                             weight=ft.FontWeight.BOLD,
-                            color=ft.colors.BLACK,
+                            color=ft.colors.ON_SURFACE,
                         ),
-                        ft.Text(f"Level: {res.get('level', lvl_name)}", size=13, weight=ft.FontWeight.W_600, color="#212121"),
-                        ft.Text(f"⏱️ Waktu pengerjaan: {el_str} dari {max_mm:02d}:00", size=13, color="#212121"),
-                        ft.Text(verdict, size=14, color="#212121"),
+                        ft.Text(f"Level: {res.get('level', lvl_name)}", size=13, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE_VARIANT),
+                        ft.Text(f"⏱️ Waktu pengerjaan: {el_str} dari {max_mm:02d}:00", size=13, color=ft.colors.ON_SURFACE_VARIANT),
+                        ft.Text(verdict, size=14, color=ft.colors.ON_SURFACE),
                     ],
                     spacing=4,
                 ),
@@ -792,17 +800,24 @@ def get_quiz_view(
 
 
 def get_certificates_view(page: ft.Page, user, mobile: bool, on_login, on_quiz, on_view_cert):
-    code_box = ft.TextField(hint_text="Kode verifikasi (10 karakter)", color=ft.colors.ON_SURFACE, border_radius=8, expand=True)
+    code_box = ft.TextField(
+        hint_text="Kode verifikasi (10 karakter)",
+        bgcolor=ft.colors.SURFACE,
+        border_color=ft.colors.OUTLINE,
+        color=ft.colors.ON_SURFACE,
+        border_radius=8,
+        expand=True,
+    )
     verdict = ft.Text("", size=13)
 
     def verify(e=None):
         cert = quiz_service.verify_certificate(code_box.value)
         if cert:
             verdict.value = f"✓ Valid: {cert['username']} lulus quiz {cert['lang']} dengan nilai {cert['score']}% pada {cert['date']}."
-            verdict.color = "#1B7F3B"
+            verdict.color = GREEN
         else:
             verdict.value = "✗ Kode tidak ditemukan."
-            verdict.color = "#C62828"
+            verdict.color = ft.colors.ERROR
         page.update()
 
     code_box.on_submit = verify
@@ -815,7 +830,7 @@ def get_certificates_view(page: ft.Page, user, mobile: bool, on_login, on_quiz, 
             ],
             spacing=10,
         ),
-        bg=ft.colors.PRIMARY_CONTAINER,
+        bg=ft.colors.SURFACE_VARIANT,
     )
 
     if not user:
@@ -844,7 +859,7 @@ def get_certificates_view(page: ft.Page, user, mobile: bool, on_login, on_quiz, 
             cards.append(
                 card(
                     col={"xs": 12, "sm": 6, "md": 4},
-                    bg=ft.colors.SECONDARY_CONTAINER if earned else ft.colors.SURFACE,
+                    bg=ft.colors.SURFACE_VARIANT if earned else ft.colors.SURFACE,
                     content=ft.Column(
                         [
                             ft.Row(
@@ -856,9 +871,9 @@ def get_certificates_view(page: ft.Page, user, mobile: bool, on_login, on_quiz, 
                                         ],
                                         spacing=8,
                                     ),
-                                    chip(f"Diperoleh - nilai {rec['best']}%", "#C8E6C9")
+                                    chip(f"Diperoleh - nilai {rec['best']}%")
                                     if earned
-                                    else chip(f"Terbaik {rec['best']}%" if rec else "Belum ada skor", "#EEEEEE"),
+                                    else chip(f"Terbaik {rec['best']}%" if rec else "Belum ada skor"),
                                 ],
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -907,7 +922,7 @@ def get_certificate_detail_view(page: ft.Page, user, lang_key: str, mobile: bool
 
     sheet = ft.Container(
         bgcolor=ft.colors.SURFACE,
-        border=ft.border.all(3, GREEN),
+        border=ft.border.all(2, ft.colors.PRIMARY),
         border_radius=12,
         padding=ft.padding.symmetric(vertical=32, horizontal=20 if mobile else 48),
         content=ft.Column(
@@ -915,9 +930,9 @@ def get_certificate_detail_view(page: ft.Page, user, lang_key: str, mobile: bool
                 ft.Text("🏅", size=44),
                 ft.Text("SERTIFIKAT KELULUSAN", size=24 if not mobile else 20, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
                 ft.Text("Platform Belajar UG-Stack", size=13, color=ft.colors.ON_SURFACE_VARIANT),
-                ft.Divider(height=20, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)),
+                ft.Divider(height=20, color=ft.colors.OUTLINE),
                 ft.Text("Diberikan kepada", size=14, color=ft.colors.ON_SURFACE_VARIANT),
-                ft.Text((user.get("full_name") or "").strip() or cert["username"], size=32 if not mobile else 26, weight=ft.FontWeight.BOLD, color=GREEN, text_align=ft.TextAlign.CENTER),
+                ft.Text((user.get("full_name") or "").strip() or cert["username"], size=32 if not mobile else 26, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
                 ft.Text(f"telah lulus quiz {cert['lang']} dengan nilai {cert['score']}%", size=16, color=ft.colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
                 ft.Text(f"Tanggal: {cert['date']}", size=13, color=ft.colors.ON_SURFACE_VARIANT),
                 ft.Container(height=10),

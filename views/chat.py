@@ -25,7 +25,9 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
     tf = ft.TextField(
         hint_text="Ketik pertanyaan atau keluhan Anda ke Customer Service...",
         expand=True,
-        border_radius=10,
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
+        border_radius=8,
     )
     ch_buttons_row = ft.Row(wrap=True, spacing=8, run_spacing=8)
 
@@ -46,18 +48,18 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
 
         if is_bot:
             disp_name = "🎧 Customer Service UG-Stack"
-            badge = chip("CS ASISTEN", "#ECFDF5", "#065F46")
+            badge = chip("CS ASISTEN")
         elif role == "admin":
             disp_name = f"🛡️ Admin CS ({full_name or sender})"
-            badge = chip("TIM CS ADMIN", "#F1F5F9", "#334155")
+            badge = chip("TIM CS ADMIN")
         elif role == "dosen":
             disp_name = f"👨‍🏫 {full_name or sender}"
-            badge = chip("TIM DOSEN", "#FEF3C7", "#92400E")
+            badge = chip("TIM DOSEN")
         else:
             disp_name = full_name or sender
             if m.get("npm"):
                 disp_name = f"{disp_name} ({m.get('npm')})"
-            badge = chip("MAHASISWA", "#ECFDF5", "#065F46")
+            badge = chip("MAHASISWA")
 
         header_items = [
             user_avatar_badge(full_name or sender, auth.get_avatar(sender), size=26),
@@ -70,27 +72,23 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
                 ft.IconButton(
                     ft.icons.DELETE_OUTLINE,
                     icon_size=16,
-                    icon_color="#E53935",
+                    icon_color=ft.colors.ERROR,
                     tooltip="Hapus",
                     on_click=lambda e, mid=m["id"]: remove_msg(mid),
                 )
             )
 
-        bubble_bg = (
-            ft.colors.PRIMARY_CONTAINER
-            if is_me
-            else (ft.colors.SECONDARY_CONTAINER if is_cs_staff else ft.colors.SURFACE)
-        )
-        border_col = GREEN if (is_me or is_bot) else ft.colors.with_opacity(0.22, ft.colors.OUTLINE)
+        bubble_bg = ft.colors.SURFACE_VARIANT if (is_me or is_cs_staff) else ft.colors.SURFACE
+        border_col = ft.colors.PRIMARY if is_me else ft.colors.OUTLINE
 
         bubble = ft.Container(
             bgcolor=bubble_bg,
             padding=14,
             border_radius=ft.border_radius.only(
-                top_left=14,
-                top_right=14,
-                bottom_left=4 if is_cs_staff else 14,
-                bottom_right=4 if is_me else 14,
+                top_left=12,
+                top_right=12,
+                bottom_left=4 if is_cs_staff else 12,
+                bottom_right=4 if is_me else 12,
             ),
             border=ft.border.all(1, border_col),
             content=ft.Column(
@@ -114,8 +112,8 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
         translate_tree(msg_col, ui_lang)
         for btn in ch_buttons_row.controls:
             active = btn.data == state["channel"]
-            btn.bgcolor = GREEN if active else ft.colors.SURFACE_VARIANT
-            btn.color = ft.colors.WHITE if active else ft.colors.ON_SURFACE
+            btn.bgcolor = ft.colors.PRIMARY if active else ft.colors.SURFACE_VARIANT
+            btn.color = ft.colors.ON_PRIMARY if active else ft.colors.ON_SURFACE
         if do_update and page:
             page.update()
 
@@ -147,17 +145,21 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
         ft.ElevatedButton(
             label,
             data=key,
-            bgcolor=GREEN if key == "umum" else ft.colors.SURFACE_VARIANT,
-            color=ft.colors.WHITE if key == "umum" else ft.colors.ON_SURFACE,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), elevation=0),
+            bgcolor=ft.colors.PRIMARY if key == "umum" else ft.colors.SURFACE_VARIANT,
+            color=ft.colors.ON_PRIMARY if key == "umum" else ft.colors.ON_SURFACE,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, ft.colors.OUTLINE),
+                elevation=0,
+            ),
             on_click=lambda e, k=key: set_ch(k),
         )
         for key, label in CHANNEL_META
     ]
 
-    status_badges = [chip("● Online — Siap Membantu", "#C8E6C9")]
+    status_badges = [chip("● Online — Siap Membantu")]
     if staff_mode:
-        status_badges.append(chip("🛡️ Mode Agen CS (Staf)", "#DBEAFE"))
+        status_badges.append(chip("🛡️ Mode Agen CS (Staf)"))
 
     cs_header_card = card(
         ft.Row(
@@ -165,12 +167,12 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
                 ft.Row(
                     [
                         ft.Container(
-                            width=46,
-                            height=46,
-                            border_radius=23,
-                            bgcolor=GREEN,
+                            width=44,
+                            height=44,
+                            border_radius=10,
+                            bgcolor=ft.colors.PRIMARY,
                             alignment=ft.alignment.center,
-                            content=ft.Icon(ft.icons.SUPPORT_AGENT, color=ft.colors.WHITE, size=26),
+                            content=ft.Icon(ft.icons.SUPPORT_AGENT, color=ft.colors.ON_PRIMARY, size=24),
                         ),
                         ft.Column(
                             [

@@ -123,12 +123,12 @@ def _tab_overview(page, user, mobile, refresh):
     avg_dsn = sum(r["percent"] for r in dsn_rows) / len(dsn_rows) if dsn_rows else 0.0
 
     cards = [
-        kpi_glow_card("TOTAL MODUL", str(st["modules"]), ft.icons.MENU_BOOK_ROUNDED, "#04AA6D", "📚 Modul"),
-        kpi_glow_card("TOTAL MAHASISWA", str(st["users"]["mahasiswa"]), ft.icons.GROUPS_ROUNDED, "#10B981", f"📈 Rata-rata Mahasiswa: {avg_mhs:.0f}%"),
-        kpi_glow_card("TOTAL DOSEN", str(st["users"]["dosen"]), ft.icons.SCHOOL_ROUNDED, "#F59E0B", f"📈 Rata-rata Dosen: {avg_dsn:.0f}%"),
-        kpi_glow_card("📝 Soal kustom", str(st["custom_questions"]), ft.icons.QUIZ_ROUNDED, "#0D9488", f"🛡️ Admin: {st['users']['admin']}"),
-        kpi_glow_card("PERCOBAAN QUIZ", str(st["quiz_attempts"]), ft.icons.INSIGHTS_ROUNDED, "#04AA6D", "🧪 Percobaan quiz"),
-        kpi_glow_card("SERTIFIKAT TERBIT", str(st["certificates"]), ft.icons.WORKSPACE_PREMIUM_ROUNDED, "#10B981", "🏅 Sertifikat terbit"),
+        kpi_glow_card("TOTAL MODUL", str(st["modules"]), ft.icons.MENU_BOOK_ROUNDED, None, "📚 Modul"),
+        kpi_glow_card("TOTAL MAHASISWA", str(st["users"]["mahasiswa"]), ft.icons.GROUPS_ROUNDED, None, f"📈 Rata-rata Mahasiswa: {avg_mhs:.0f}%"),
+        kpi_glow_card("TOTAL DOSEN", str(st["users"]["dosen"]), ft.icons.SCHOOL_ROUNDED, None, f"📈 Rata-rata Dosen: {avg_dsn:.0f}%"),
+        kpi_glow_card("📝 Soal kustom", str(st["custom_questions"]), ft.icons.QUIZ_ROUNDED, None, f"🛡️ Admin: {st['users']['admin']}"),
+        kpi_glow_card("PERCOBAAN QUIZ", str(st["quiz_attempts"]), ft.icons.INSIGHTS_ROUNDED, None, "🧪 Percobaan quiz"),
+        kpi_glow_card("SERTIFIKAT TERBIT", str(st["certificates"]), ft.icons.WORKSPACE_PREMIUM_ROUNDED, None, "🏅 Sertifikat terbit"),
     ]
 
     prog_preview = ft.Column(
@@ -136,19 +136,19 @@ def _tab_overview(page, user, mobile, refresh):
             ft.Row(
                 [
                     ft.Text("🎓 Ringkasan Progres Mahasiswa", size=12, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
-                    ft.Text(f"{avg_mhs:.0f}%", size=12, weight=ft.FontWeight.BOLD, color="#10B981"),
+                    ft.Text(f"{avg_mhs:.0f}%", size=12, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            ft.ProgressBar(value=avg_mhs / 100, color="#10B981", bgcolor=BORDER_SUBTLE, height=7),
+            ft.ProgressBar(value=avg_mhs / 100, color=ft.colors.PRIMARY, bgcolor=BORDER_SUBTLE, height=6),
             ft.Row(
                 [
                     ft.Text("👨‍🏫 Ringkasan Progres Dosen", size=12, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
-                    ft.Text(f"{avg_dsn:.0f}%", size=12, weight=ft.FontWeight.BOLD, color="#F59E0B"),
+                    ft.Text(f"{avg_dsn:.0f}%", size=12, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            ft.ProgressBar(value=avg_dsn / 100, color="#F59E0B", bgcolor=BORDER_SUBTLE, height=7),
+            ft.ProgressBar(value=avg_dsn / 100, color="#71717A", bgcolor=BORDER_SUBTLE, height=6),
         ],
         spacing=6,
     )
@@ -200,12 +200,12 @@ def _tab_report(page, user, mobile, refresh):
         glass_card(ft.Column([
             ft.Text("🎓 Ringkasan Progres Mahasiswa", weight=ft.FontWeight.BOLD, size=14, color=TEXT_PRIMARY),
             ft.Text(f"{len(all_mhs)} mahasiswa  •  rata-rata progres {avg_mhs:.0f}%", size=13, color=TEXT_MUTED),
-            ft.ProgressBar(value=avg_mhs / 100, color="#10B981", bgcolor=BORDER_SUBTLE, height=8),
+            ft.ProgressBar(value=avg_mhs / 100, color=ft.colors.PRIMARY, bgcolor=BORDER_SUBTLE, height=6),
         ], spacing=6), col={"xs": 12, "md": 6}, padding=16),
         glass_card(ft.Column([
             ft.Text("👨‍🏫 Ringkasan Progres Dosen", weight=ft.FontWeight.BOLD, size=14, color=TEXT_PRIMARY),
             ft.Text(f"{len(all_dsn)} dosen  •  rata-rata progres {avg_dsn:.0f}%", size=13, color=TEXT_MUTED),
-            ft.ProgressBar(value=avg_dsn / 100, color="#F59E0B", bgcolor=BORDER_SUBTLE, height=8),
+            ft.ProgressBar(value=avg_dsn / 100, color="#71717A", bgcolor=BORDER_SUBTLE, height=6),
         ], spacing=6), col={"xs": 12, "md": 6}, padding=16),
     ]
 
@@ -224,7 +224,7 @@ def _tab_report(page, user, mobile, refresh):
         cards = []
         for r in rows[:50]:
             is_dsn = r["role"] == "dosen"
-            role_badge = chip("DOSEN", "#DBEAFE") if is_dsn else chip("MAHASISWA", "#FFF4A3")
+            role_badge = chip("DOSEN") if is_dsn else chip("MAHASISWA")
             disp_name = f"{r['full_name']} ({r['username']})" if r.get("full_name") and r["full_name"].lower() != r["username"].lower() else (r.get("full_name") or r["username"])
             badges = [
                 user_avatar_badge(r.get("full_name") or r["username"], r.get("avatar", ""), size=34),
@@ -232,8 +232,8 @@ def _tab_report(page, user, mobile, refresh):
                 role_badge,
             ]
             if r.get("npm"):
-                badges.append(chip(r["npm"], "#E5E7EB"))
-            badges.append(chip(f"{r['percent']:.0f}%", "#D1FAE5"))
+                badges.append(chip(r["npm"]))
+            badges.append(chip(f"{r['percent']:.0f}%"))
 
             metrics = [
                 ft.Text(f"{r['done']}/{r['total']} modul", size=12, color=TEXT_MUTED),
@@ -249,7 +249,7 @@ def _tab_report(page, user, mobile, refresh):
 
             cards.append(glass_card(ft.Column([
                 ft.Row(badges, wrap=True, spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
-                ft.ProgressBar(value=r["percent"] / 100, color="#10B981" if not is_dsn else "#F59E0B", bgcolor=BORDER_SUBTLE, height=8),
+                ft.ProgressBar(value=r["percent"] / 100, color=ft.colors.PRIMARY if not is_dsn else "#71717A", bgcolor=BORDER_SUBTLE, height=6),
                 ft.Row(metrics, wrap=True, spacing=14),
             ], spacing=8), padding=16))
         list_box.controls = cards or [ft.Text("Belum ada pengguna yang cocok.", size=13, color=TEXT_MUTED)]
@@ -304,7 +304,7 @@ def _tab_users(page, user, mobile, refresh):
     reg_switch = ft.Switch(
         label="Pendaftaran mandiri dibuka (mahasiswa boleh mendaftar sendiri)",
         value=settings.registration_open(),
-        active_color="#10B981",
+        active_color=ft.colors.PRIMARY,
         on_change=on_toggle_registration,
     )
 

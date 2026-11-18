@@ -32,14 +32,23 @@ def get_lesson_view(page: ft.Page, lang: dict, idx: int, mobile: bool, on_lesson
     last = idx == len(lessons) - 1
 
     hero = ft.Container(
-        bgcolor=DARK, padding=ft.padding.symmetric(vertical=24, horizontal=pad(mobile)),
+        bgcolor=ft.colors.SURFACE,
+        border=ft.border.only(bottom=ft.BorderSide(1, ft.colors.OUTLINE)),
+        padding=ft.padding.symmetric(vertical=24, horizontal=pad(mobile)),
         content=ft.Row([
-            ft.Container(lang_logo(lang["key"], 36), bgcolor=ft.colors.WHITE, width=60, height=60, border_radius=12,
-                         alignment=ft.alignment.center),
+            ft.Container(
+                lang_logo(lang["key"], 34),
+                bgcolor=ft.colors.SURFACE_VARIANT,
+                border=ft.border.all(1, ft.colors.OUTLINE),
+                width=56,
+                height=56,
+                border_radius=10,
+                alignment=ft.alignment.center,
+            ),
             ft.Column([
-                ft.Text(f"Tutorial {lang['name']}", size=26 if not mobile else 22, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE),
-                ft.Text(lang["tagline"], size=13, color="#C8CCD4"),
-                ft.Row([chip(lang["level"]), chip(f"{len(lessons)} pelajaran", "#E7F9F0")], spacing=6, wrap=True),
+                ft.Text(f"Tutorial {lang['name']}", size=26 if not mobile else 22, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                ft.Text(lang["tagline"], size=13, color=ft.colors.ON_SURFACE_VARIANT),
+                ft.Row([chip(lang["level"]), chip(f"{len(lessons)} pelajaran")], spacing=6, wrap=True),
             ], spacing=4, expand=True),
         ], spacing=14))
 
@@ -59,15 +68,21 @@ def get_lesson_view(page: ft.Page, lang: dict, idx: int, mobile: bool, on_lesson
         for i, l in enumerate(lessons):
             active = i == idx
             rows.append(ft.Container(
-                ft.Text(f"{i + 1}. {l['title']}", size=13, color=ft.colors.WHITE if active else ft.colors.ON_SURFACE,
+                ft.Text(f"{i + 1}. {l['title']}", size=13, color=ft.colors.ON_PRIMARY if active else ft.colors.ON_SURFACE,
                         weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL),
-                bgcolor=GREEN if active else None, padding=ft.padding.symmetric(horizontal=10, vertical=8),
+                bgcolor=ft.colors.PRIMARY if active else None, padding=ft.padding.symmetric(horizontal=10, vertical=8),
                 border_radius=8, ink=True, on_click=lambda e, i=i: on_lesson(key, i)))
-        rows += [ft.Divider(height=10, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)),
+        rows += [ft.Divider(height=10, color=ft.colors.OUTLINE),
                  ft.TextButton("📋 Ringkasan sintaks", on_click=lambda e: on_reference(key)),
                  ft.TextButton("📝 Quiz & sertifikat", on_click=lambda e: on_quiz(key))]
-        sidebar = ft.Container(col={"xs": 12, "md": 3}, bgcolor=SIDEBAR, padding=16, border_radius=12,
-                               content=ft.Column(rows, spacing=4))
+        sidebar = ft.Container(
+            col={"xs": 12, "md": 3},
+            bgcolor=ft.colors.SURFACE,
+            border=ft.border.all(1, ft.colors.OUTLINE),
+            padding=16,
+            border_radius=10,
+            content=ft.Column(rows, spacing=4),
+        )
 
     nav_row = ft.Row([
         dark_button("❮ Sebelumnya", lambda e: on_lesson(key, idx - 1), disabled=idx == 0),
@@ -82,19 +97,19 @@ def get_lesson_view(page: ft.Page, lang: dict, idx: int, mobile: bool, on_lesson
         *paragraphs,
         code_block(page, lesson["code"], f"Contoh {lang['name']}"),
         ft.Row([green_button("Coba Sendiri ❯", lambda e: on_tryit(lang["name"], lesson["code"]))]),
-        ft.Divider(height=20, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)),
+        ft.Divider(height=20, color=ft.colors.OUTLINE),
         nav_row,
     ], spacing=12))
 
     docs = card(ft.Row([ft.Text("📚 Dokumentasi resmi:", size=14, color=ft.colors.ON_SURFACE),
-                        link_text(f"{lang['docs_name']} ↗", lang["docs_url"], 14)], wrap=True, spacing=6), bg=ft.colors.PRIMARY_CONTAINER)
+                        link_text(f"{lang['docs_name']} ↗", lang["docs_url"], 14)], wrap=True, spacing=6), bg=ft.colors.SURFACE_VARIANT)
 
     return ft.Column([
         hero,
         ft.Container(padding=pad(mobile), content=ft.Column([
             ft.ResponsiveRow([sidebar, main], spacing=20, run_spacing=14),
             docs,
-            ft.Divider(height=30, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)),
+            ft.Divider(height=30, color=ft.colors.OUTLINE),
             section_heading("Diperkaya otomatis dari sumber tepercaya"),
             ft.Text("Bagian ini dimuat langsung dari Wikipedia, MDN, Stack Overflow, DEV Community, dan GitHub.",
                     size=13, color=ft.colors.ON_SURFACE_VARIANT),
@@ -117,10 +132,10 @@ def get_references_view(page: ft.Page, lang: dict, mobile: bool, on_lang):
             rows.append(
                 ft.Container(
                     padding=ft.padding.symmetric(horizontal=16, vertical=12),
-                    border=ft.border.only(bottom=ft.BorderSide(1, ft.colors.with_opacity(0.18, ft.colors.OUTLINE))),
+                    border=ft.border.only(bottom=ft.BorderSide(1, ft.colors.OUTLINE)),
                     content=ft.ResponsiveRow(
                         [
-                            ft.Text(syntax, font_family="monospace", size=13, color="#B31D4D", selectable=True, col={"xs": 12, "md": 5}),
+                            ft.Text(syntax, font_family="monospace", size=13, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE, selectable=True, col={"xs": 12, "md": 5}),
                             ft.Text(desc, size=13, color=ft.colors.ON_SURFACE_VARIANT, col={"xs": 12, "md": 7}),
                         ]
                     ),
@@ -142,6 +157,8 @@ def get_references_view(page: ft.Page, lang: dict, mobile: bool, on_lang):
         hint_text=f"Saring ringkasan sintaks {lang['name']}...",
         prefix_icon=ft.icons.FILTER_LIST,
         on_change=on_filter,
+        bgcolor=ft.colors.SURFACE,
+        border_color=ft.colors.OUTLINE,
         color=ft.colors.ON_SURFACE,
         border_radius=8,
     )
@@ -150,9 +167,13 @@ def get_references_view(page: ft.Page, lang: dict, mobile: bool, on_lang):
         [
             ft.ElevatedButton(
                 l["name"],
-                bgcolor=GREEN if l["key"] == key else ft.colors.SURFACE_VARIANT,
-                color=ft.colors.WHITE if l["key"] == key else ft.colors.ON_SURFACE,
-                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8), elevation=0),
+                bgcolor=ft.colors.PRIMARY if l["key"] == key else ft.colors.SURFACE_VARIANT,
+                color=ft.colors.ON_PRIMARY if l["key"] == key else ft.colors.ON_SURFACE,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=8),
+                    side=ft.BorderSide(1, ft.colors.PRIMARY if l["key"] == key else ft.colors.OUTLINE),
+                    elevation=0,
+                ),
                 on_click=lambda e, k=l["key"]: on_lang(k),
             )
             for l in LANGS
@@ -164,7 +185,14 @@ def get_references_view(page: ft.Page, lang: dict, mobile: bool, on_lang):
 
     results = ft.Column(spacing=10)
     use_mdn = bool(lang.get("mdn"))
-    search_box = ft.TextField(hint_text="Cari topik, mis. flex, async, JOIN...", color=ft.colors.ON_SURFACE, border_radius=8, expand=True)
+    search_box = ft.TextField(
+        hint_text="Cari topik, mis. flex, async, JOIN...",
+        bgcolor=ft.colors.SURFACE,
+        border_color=ft.colors.OUTLINE,
+        color=ft.colors.ON_SURFACE,
+        border_radius=8,
+        expand=True,
+    )
 
     def do_search(e=None):
         q = (search_box.value or "").strip()
@@ -183,7 +211,7 @@ def get_references_view(page: ft.Page, lang: dict, mobile: bool, on_lang):
                     data, _ = ws.stackoverflow_search(q, lang["so"], 6)
                     results.controls = [r_so(i) for i in data] or [ft.Text("Tidak ada hasil.", size=12)]
             except Exception:
-                results.controls = [ft.Text("Tidak dapat memuat hasil. Periksa koneksi internet.", size=12, color=ft.colors.RED_700)]
+                results.controls = [ft.Text("Tidak dapat memuat hasil. Periksa koneksi internet.", size=12, color=ft.colors.ERROR)]
             translate_tree(results, getattr(page, "_ug_lang", "id"))
             try:
                 page.update()
@@ -214,8 +242,8 @@ def get_references_view(page: ft.Page, lang: dict, mobile: bool, on_lang):
                         filter_box,
                         ft.Container(
                             content=table,
-                            border=ft.border.all(1, ft.colors.with_opacity(0.18, ft.colors.OUTLINE)),
-                            border_radius=12,
+                            border=ft.border.all(1, ft.colors.OUTLINE),
+                            border_radius=10,
                             bgcolor=ft.colors.SURFACE,
                         ),
                         card(
@@ -227,9 +255,9 @@ def get_references_view(page: ft.Page, lang: dict, mobile: bool, on_lang):
                                 wrap=True,
                                 spacing=6,
                             ),
-                            bg=ft.colors.PRIMARY_CONTAINER,
+                            bg=ft.colors.SURFACE_VARIANT,
                         ),
-                        ft.Divider(height=20, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)),
+                        ft.Divider(height=20, color=ft.colors.OUTLINE),
                         section_heading(f"Cari lebih dalam di {src_name}"),
                         ft.Row([search_box, green_button("Cari", do_search)], spacing=8),
                         results,

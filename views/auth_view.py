@@ -78,14 +78,14 @@ def _render_avatar_preview(username: str, avatar_str: str, size: int = 72) -> ft
             inner = ft.Image(src_base64=clean, width=size, height=size, fit=ft.ImageFit.COVER, border_radius=size // 2)
     else:
         initial = (username or "U")[0].upper()
-        inner = ft.Text(initial, size=int(size * 0.42), weight=ft.FontWeight.BOLD, color=ft.colors.WHITE)
+        inner = ft.Text(initial, size=int(size * 0.42), weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE)
 
     return ft.Container(
         width=size,
         height=size,
         border_radius=size // 2,
-        bgcolor="#182028",
-        border=ft.border.all(2, "#04AA6D"),
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border=ft.border.all(1.5, ft.colors.OUTLINE),
         alignment=ft.alignment.center,
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
         content=inner,
@@ -97,7 +97,7 @@ def open_change_password(page: ft.Page, user: dict, forced: bool = False, on_don
     old = ft.TextField(label="Password lama", password=True, can_reveal_password=True, color=ft.colors.ON_SURFACE, autofocus=True)
     new = ft.TextField(label="Password baru (min. 8, huruf + angka)", password=True, can_reveal_password=True, color=ft.colors.ON_SURFACE)
     conf = ft.TextField(label="Ulangi password baru", password=True, can_reveal_password=True, color=ft.colors.ON_SURFACE)
-    msg = ft.Text("", size=13, color=ft.colors.RED_700)
+    msg = ft.Text("", size=13, color=ft.colors.ERROR)
     width = max(250, min(380, (page.width or 400) - 70))
 
     def save(e=None):
@@ -121,12 +121,12 @@ def open_change_password(page: ft.Page, user: dict, forced: bool = False, on_don
     new.on_submit = save
     conf.on_submit = save
     note = "Password Anda masih sementara/bawaan. Ganti sekarang untuk melanjutkan." if forced else "Pilih password baru yang kuat."
-    actions = [ft.ElevatedButton("Simpan", bgcolor=GREEN, color=ft.colors.WHITE, on_click=save)]
+    actions = [ft.ElevatedButton("Simpan", bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, on_click=save)]
     if not forced:
         actions.insert(0, ft.TextButton("Batal", on_click=lambda e: (setattr(page.dialog, "open", False), page.update())))
     page.dialog = ft.AlertDialog(
         modal=True,
-        shape=ft.RoundedRectangleBorder(radius=16),
+        shape=ft.RoundedRectangleBorder(radius=12),
         title=ft.Text("Ganti Password", weight=ft.FontWeight.BOLD),
         content=ft.Container(width=width, content=ft.Column(
             [ft.Text(note, size=13), old, new, conf, msg], tight=True, spacing=10, scroll=ft.ScrollMode.AUTO)),
@@ -146,17 +146,17 @@ def open_change_username(page: ft.Page, user: dict, on_done=None):
         value="" if (cur_npm and cur_uname.lower() == cur_npm.lower()) else cur_uname,
         hint_text=cur_uname,
         color=ft.colors.ON_SURFACE,
-        border_radius=10,
+        border_radius=8,
         autofocus=True,
     )
     fname_tf = ft.TextField(
         label="Nama Lengkap Mahasiswa (wajib)",
         value=cur_fname,
         color=ft.colors.ON_SURFACE,
-        border_radius=10,
+        border_radius=8,
         visible=user.get("role") == "mahasiswa" or bool(cur_fname),
     )
-    msg = ft.Text("", size=13, color=ft.colors.RED_700)
+    msg = ft.Text("", size=13, color=ft.colors.ERROR)
     width = max(250, min(380, (page.width or 400) - 70))
 
     def save(e=None):
@@ -184,7 +184,7 @@ def open_change_username(page: ft.Page, user: dict, on_done=None):
     fname_tf.on_submit = save
     page.dialog = ft.AlertDialog(
         modal=True,
-        shape=ft.RoundedRectangleBorder(radius=16),
+        shape=ft.RoundedRectangleBorder(radius=12),
         title=ft.Text("Ubah Username", weight=ft.FontWeight.BOLD),
         content=ft.Container(
             width=width,
@@ -202,7 +202,7 @@ def open_change_username(page: ft.Page, user: dict, on_done=None):
         ),
         actions=[
             ft.TextButton("Batal", on_click=lambda e: (setattr(page.dialog, "open", False), page.update())),
-            ft.ElevatedButton("Simpan", bgcolor=GREEN, color=ft.colors.WHITE, on_click=save),
+            ft.ElevatedButton("Simpan", bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, on_click=save),
         ],
     )
     page.dialog.open = True
@@ -408,7 +408,7 @@ def open_change_avatar(page: ft.Page, user: dict, on_done=None):
 
     page.dialog = ft.AlertDialog(
         modal=True,
-        shape=ft.RoundedRectangleBorder(radius=16),
+        shape=ft.RoundedRectangleBorder(radius=12),
         title=ft.Text("Ubah Foto Profil", weight=ft.FontWeight.BOLD),
         content=ft.Container(
             width=width,
@@ -419,14 +419,14 @@ def open_change_avatar(page: ft.Page, user: dict, on_done=None):
                         [
                             ft.ElevatedButton(
                                 "📁 Pilih File Foto",
-                                bgcolor="#282A35",
-                                color=ft.colors.WHITE,
-                                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20), elevation=0),
+                                bgcolor=ft.colors.PRIMARY,
+                                color=ft.colors.ON_PRIMARY,
+                                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8), elevation=0),
                                 on_click=pick_file,
                             ),
                             ft.OutlinedButton(
                                 "Hapus Foto",
-                                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20)),
+                                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
                                 on_click=remove_photo,
                             ),
                         ],
@@ -446,7 +446,7 @@ def open_change_avatar(page: ft.Page, user: dict, on_done=None):
         ),
         actions=[
             ft.TextButton("Batal", on_click=lambda e: (setattr(page.dialog, "open", False), page.update())),
-            ft.ElevatedButton("Simpan", bgcolor=GREEN, color=ft.colors.WHITE, on_click=save),
+            ft.ElevatedButton("Simpan", bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, on_click=save),
         ],
     )
     page.dialog.open = True
@@ -464,7 +464,7 @@ def open_admin_entry(page: ft.Page, on_login_success):
     """Dialog masuk khusus admin: kode berputar 60 detik dari generator admin."""
     username = ft.TextField(label="Username admin", value="admin", border_radius=8)
     code = ft.TextField(label="Kode admin (16 karakter)", password=True, can_reveal_password=True, border_radius=8, autofocus=True)
-    message = ft.Text("", size=13, color=ft.colors.RED_700)
+    message = ft.Text("", size=13, color=ft.colors.ERROR)
     width = max(250, min(380, (page.width or 400) - 70))
 
     def submit(e=None):
@@ -484,7 +484,7 @@ def open_admin_entry(page: ft.Page, on_login_success):
             [ft.Text("Masukkan kode yang ditampilkan generator admin. Kode berganti setiap 60 detik dan hanya berlaku sekali.", size=13),
              username, code, message], tight=True, scroll=ft.ScrollMode.AUTO)),
         actions=[ft.TextButton("Batal", on_click=lambda e: (setattr(page.dialog, "open", False), page.update())),
-                 ft.ElevatedButton("Masuk", bgcolor=GREEN, color=ft.colors.WHITE, on_click=submit)])
+                 ft.ElevatedButton("Masuk", bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, on_click=submit)])
     page.dialog.open = True
     page.update()
 
@@ -495,7 +495,7 @@ def open_redeem_reset_code(page: ft.Page, initial_id: str = ""):
     code_tf = ft.TextField(label="Kode Reset / Password Sementara (berlaku 10 menit)", password=True, can_reveal_password=True, border_radius=8)
     new_tf = ft.TextField(label="Password baru (min. 8, huruf + angka)", password=True, can_reveal_password=True, border_radius=8)
     conf_tf = ft.TextField(label="Ulangi password baru", password=True, can_reveal_password=True, border_radius=8)
-    msg = ft.Text("", size=13, color=ft.colors.RED_700)
+    msg = ft.Text("", size=13, color=ft.colors.ERROR)
     width = max(260, min(420, (page.width or 450) - 60))
 
     def save_new_pw(e=None):
@@ -537,7 +537,7 @@ def open_redeem_reset_code(page: ft.Page, initial_id: str = ""):
         ),
         actions=[
             ft.TextButton("Tutup", on_click=lambda e: (setattr(page.dialog, "open", False), page.update())),
-            ft.ElevatedButton("Simpan", bgcolor=GREEN, color=ft.colors.WHITE, on_click=save_new_pw),
+            ft.ElevatedButton("Simpan", bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, on_click=save_new_pw),
         ],
     )
     page.dialog.open = True
@@ -578,7 +578,7 @@ def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial
         max_lines=3,
         border_radius=8,
     )
-    feedback = ft.Text("", size=13, color=ft.colors.RED_700)
+    feedback = ft.Text("", size=13, color=ft.colors.ERROR)
     action_box = ft.Column([], spacing=6, visible=False)
     width = max(260, min(430, (page.width or 450) - 60))
 
@@ -605,12 +605,12 @@ def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial
             reason=reason_tf.value or "",
         )
         if not ok:
-            feedback.color = ft.colors.RED_700
+            feedback.color = ft.colors.ERROR
             feedback.value = msg
             action_box.visible = False
             page.update()
             return
-        feedback.color = GREEN
+        feedback.color = ft.colors.ON_SURFACE
         feedback.value = f"{msg} (Tiket #{rec['id']})"
         mailto_url = rec.get("mailto_url") or auth.build_reset_mailto(rec)
         gmail_url = rec.get("gmail_url") or auth.build_reset_gmail_url(rec)
@@ -619,14 +619,14 @@ def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial
         action_box.controls = [
             ft.ElevatedButton(
                 "📧 Kirim via Aplikasi Email (zetheron.id@gmail.com)",
-                bgcolor=GREEN,
-                color=ft.colors.WHITE,
+                bgcolor=ft.colors.PRIMARY,
+                color=ft.colors.ON_PRIMARY,
                 on_click=lambda ev, u=mailto_url: _open_mailto(u),
             ),
             ft.ElevatedButton(
                 "🌐 Kirim via Gmail Web (zetheron.id@gmail.com)",
-                bgcolor="#182028",
-                color=ft.colors.WHITE,
+                bgcolor=ft.colors.SURFACE_VARIANT,
+                color=ft.colors.ON_SURFACE,
                 on_click=lambda ev, u=gmail_url: _open_mailto(u),
             ),
             ft.OutlinedButton(
@@ -639,7 +639,7 @@ def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial
         page.show_snack(msg)
         page.update()
 
-    submit_btn = ft.ElevatedButton("Kirim Permintaan Reset", bgcolor=GREEN, color=ft.colors.WHITE, on_click=submit_reset)
+    submit_btn = ft.ElevatedButton("Kirim Permintaan Reset", bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, on_click=submit_reset)
     redeem_btn = ft.TextButton(
         "🔓 Sudah dapat email reset (10 menit)? Atur password baru",
         on_click=lambda e: open_redeem_reset_code(page, initial_id=(id_tf.value or "").strip()),
@@ -692,24 +692,44 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
     full_name_field = ft.TextField(
         label="Nama Lengkap Mahasiswa (wajib)",
         autofocus=is_mhs,
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
         border_radius=8,
         visible=is_mhs,
     )
     npm_field = ft.TextField(
         label="NPM Mahasiswa (wajib)",
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
         border_radius=8,
         visible=is_mhs,
     )
     username = ft.TextField(
         label=ID_LABEL[role],
         autofocus=not is_mhs,
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
         border_radius=8,
         visible=not is_mhs,
     )
-    password = ft.TextField(label="Password", password=True, can_reveal_password=True, border_radius=8)
-    confirm = ft.TextField(label="Konfirmasi Password", password=True, can_reveal_password=True,
-                           border_radius=8, visible=not is_login)
-    message = ft.Text("", size=13, color=ft.colors.RED_700)
+    password = ft.TextField(
+        label="Password",
+        password=True,
+        can_reveal_password=True,
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
+        border_radius=8,
+    )
+    confirm = ft.TextField(
+        label="Konfirmasi Password",
+        password=True,
+        can_reveal_password=True,
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
+        border_radius=8,
+        visible=not is_login,
+    )
+    message = ft.Text("", size=13, color=ft.colors.ERROR)
 
     def _on_name_change(e=None):
         if not (is_login and is_mhs):
@@ -773,11 +793,22 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
     def role_button(key, label):
         active = key == role
         return ft.Container(
-            ft.Text(label, size=14, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER,
-                    color=ft.colors.WHITE if active else ft.colors.ON_SURFACE),
-            bgcolor=GREEN if active else ft.colors.SURFACE_VARIANT, padding=ft.padding.symmetric(vertical=12),
-            border_radius=8, alignment=ft.alignment.center, expand=True, ink=True,
-            on_click=lambda e, k=key: on_switch_mode("login", k) if on_switch_mode else None)
+            ft.Text(
+                label,
+                size=14,
+                weight=ft.FontWeight.BOLD,
+                text_align=ft.TextAlign.CENTER,
+                color=ft.colors.ON_PRIMARY if active else ft.colors.ON_SURFACE,
+            ),
+            bgcolor=ft.colors.PRIMARY if active else ft.colors.SURFACE_VARIANT,
+            border=ft.border.all(1, ft.colors.PRIMARY if active else ft.colors.OUTLINE),
+            padding=ft.padding.symmetric(vertical=11),
+            border_radius=8,
+            alignment=ft.alignment.center,
+            expand=True,
+            ink=True,
+            on_click=lambda e, k=key: on_switch_mode("login", k) if on_switch_mode else None,
+        )
 
     selector = ft.Row([role_button(k, l) for k, l in ROLE_CHOICES], spacing=8)
     title_text = {"mahasiswa": "Login Mahasiswa", "dosen": "Login Dosen"}[role] if is_login else "Daftar Akun Mahasiswa"
@@ -813,25 +844,37 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
             taps["n"] = 0
             open_admin_entry(page, on_login_success)
 
-    title = ft.GestureDetector(content=ft.Text(title_text, size=24, weight=ft.FontWeight.BOLD), on_tap=on_title_tap)
+    title = ft.GestureDetector(content=ft.Text(title_text, size=24, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE), on_tap=on_title_tap)
     card = ft.Container(
-        bgcolor=ft.colors.SURFACE, padding=25, border_radius=12,
-        border=ft.border.all(1, ft.colors.with_opacity(0.35, ft.colors.OUTLINE)),
+        bgcolor=ft.colors.SURFACE,
+        padding=28,
+        border_radius=12,
+        border=ft.border.all(1, ft.colors.OUTLINE),
         content=ft.Column([
             *([selector] if is_login else []),
             title,
             ft.Text(HINT[role] if is_login else "Isi nama lengkap dan NPM Anda. Password minimal 8 karakter (huruf dan angka).",
                     size=13, color=ft.colors.ON_SURFACE_VARIANT),
-            ft.Container(height=5),
+            ft.Container(height=4),
             full_name_field, npm_field, username, password, confirm, message,
-            ft.ElevatedButton("Login" if is_login else "Daftar", bgcolor=GREEN, color=ft.colors.WHITE, on_click=submit),
+            ft.ElevatedButton(
+                "Login" if is_login else "Daftar",
+                bgcolor=ft.colors.PRIMARY,
+                color=ft.colors.ON_PRIMARY,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=8),
+                    padding=ft.padding.symmetric(vertical=14),
+                    elevation=0,
+                ),
+                on_click=submit,
+            ),
             *switch_controls,
             ft.TextButton("❮ Kembali ke Beranda", on_click=lambda e: on_back() if on_back else None),
         ], spacing=10, horizontal_alignment=ft.CrossAxisAlignment.STRETCH))
 
     return ft.Container(
-        bgcolor=ft.colors.PRIMARY_CONTAINER,
-        padding=ft.padding.symmetric(vertical=40, horizontal=16),
+        bgcolor=ft.colors.BACKGROUND,
+        padding=ft.padding.symmetric(vertical=48, horizontal=16),
         content=ft.ResponsiveRow(
             [ft.Container(card, col={"xs": 12, "sm": 10, "md": 6, "lg": 4})],
             alignment=ft.MainAxisAlignment.CENTER))

@@ -30,7 +30,7 @@ def create_simulator_cards(lang_name: str = "Python", initial_code: str = None, 
         "",
         font_family="monospace",
         size=13,
-        color="#00E676",
+        color="#FAFAFA",
         selectable=True,
     )
 
@@ -58,6 +58,8 @@ def create_simulator_cards(lang_name: str = "Python", initial_code: str = None, 
         multiline=True,
         min_lines=9,
         max_lines=14,
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
         text_style=ft.TextStyle(font_family="monospace", size=13),
         border_radius=8,
     )
@@ -65,6 +67,8 @@ def create_simulator_cards(lang_name: str = "Python", initial_code: str = None, 
         label="Bahasa",
         value=lang_key,
         width=200,
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
         border_radius=8,
         options=[ft.dropdown.Option(k, k) for k in SAMPLES.keys()],
     )
@@ -88,6 +92,8 @@ def create_simulator_cards(lang_name: str = "Python", initial_code: str = None, 
     algo_dd = ft.Dropdown(
         label="Algoritma",
         value="binary_search",
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
         border_radius=8,
         options=[
             ft.dropdown.Option("binary_search", "Pencarian Biner O(log n)"),
@@ -96,9 +102,21 @@ def create_simulator_cards(lang_name: str = "Python", initial_code: str = None, 
             ft.dropdown.Option("insertion_sort", "Pengurutan Sisip O(n^2)"),
         ],
     )
-    arr_tf = ft.TextField(label="Deretan angka (pisahkan koma)", value="42, 15, 8, 99, 23, 4, 16, 55", border_radius=8)
-    target_tf = ft.TextField(label="Target cari", value="23", border_radius=8)
-    algo_summary = ft.Text("", weight=ft.FontWeight.BOLD, size=13, color=GREEN)
+    arr_tf = ft.TextField(
+        label="Deretan angka (pisahkan koma)",
+        value="42, 15, 8, 99, 23, 4, 16, 55",
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
+        border_radius=8,
+    )
+    target_tf = ft.TextField(
+        label="Target cari",
+        value="23",
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
+        border_radius=8,
+    )
+    algo_summary = ft.Text("", weight=ft.FontWeight.BOLD, size=13, color=ft.colors.ON_SURFACE)
     algo_steps_col = ft.Column(spacing=8)
 
     def run_algo(e=None):
@@ -112,6 +130,7 @@ def create_simulator_cards(lang_name: str = "Python", initial_code: str = None, 
         algo_steps_col.controls = [
             ft.Container(
                 bgcolor=ft.colors.SURFACE_VARIANT,
+                border=ft.border.all(1, ft.colors.OUTLINE),
                 padding=10,
                 border_radius=8,
                 content=ft.Text(translate(st, cur_l), font_family="monospace", size=12, color=ft.colors.ON_SURFACE),
@@ -145,7 +164,8 @@ def create_simulator_cards(lang_name: str = "Python", initial_code: str = None, 
                 code_tf,
                 ft.Text("Hasil Eksekusi Output:", weight=ft.FontWeight.BOLD, size=13, color=ft.colors.ON_SURFACE_VARIANT),
                 ft.Container(
-                    bgcolor="#1E222A",
+                    bgcolor="#121212",
+                    border=ft.border.all(1, "#262626"),
                     padding=16,
                     border_radius=8,
                     content=ft.Column([output_text], spacing=0),

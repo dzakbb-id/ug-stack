@@ -1,12 +1,12 @@
-"""Komponen UI bersama bergaya UG-Stack Minimalis (hijau #04AA6D, gelap #282A35)."""
+"""Komponen UI bersama bergaya UG-Stack Minimalis Monokrom (Putih & Abu-abu / Hitam & Putih)."""
 import flet as ft
 
 from content.languages import LANGS
 
-GREEN = "#04AA6D"
-DARK = "#182028"
-LIGHT_GREEN = ft.colors.PRIMARY_CONTAINER
-SIDEBAR = ft.colors.SURFACE_VARIANT
+GREEN = "#10B981"
+DARK = ft.colors.PRIMARY
+LIGHT_GREEN = ft.colors.SURFACE_VARIANT
+SIDEBAR = ft.colors.SURFACE
 
 LOGO_URLS = {
     "HTML": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg",
@@ -55,12 +55,19 @@ _BTN_STYLE = ft.ButtonStyle(
     elevation=0,
 )
 
+_SECONDARY_BTN_STYLE = ft.ButtonStyle(
+    shape=ft.RoundedRectangleBorder(radius=8),
+    padding=ft.padding.symmetric(horizontal=18, vertical=12),
+    side=ft.BorderSide(1, ft.colors.OUTLINE),
+    elevation=0,
+)
+
 
 def pad(mobile: bool) -> int:
     return 16 if mobile else 32
 
 
-def link_text(text: str, url: str, size: int = 13, color: str = GREEN) -> ft.Text:
+def link_text(text: str, url: str, size: int = 13, color: str = ft.colors.ON_SURFACE) -> ft.Text:
     """Teks tautan yang bisa membungkus baris (aman untuk judul panjang)."""
     return ft.Text(
         spans=[ft.TextSpan(text, ft.TextStyle(color=color, decoration=ft.TextDecoration.UNDERLINE), url=url)],
@@ -68,18 +75,20 @@ def link_text(text: str, url: str, size: int = 13, color: str = GREEN) -> ft.Tex
     )
 
 
-def chip(text: str, bg: str = "#ECFDF5", fg: str = "#065F46") -> ft.Container:
+def chip(text: str, bg: str = None, fg: str = None) -> ft.Container:
     return ft.Container(
-        ft.Text(text, size=11, weight=ft.FontWeight.W_600, color=fg),
-        bgcolor=bg,
+        ft.Text(text, size=11, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE),
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border=ft.border.all(1, ft.colors.OUTLINE),
         padding=ft.padding.symmetric(horizontal=10, vertical=4),
         border_radius=6,
     )
 
 
-def page_banner(title: str, subtitle: str = "", mobile: bool = False, accent: str = GREEN) -> ft.Container:
+def page_banner(title: str, subtitle: str = "", mobile: bool = False, accent: str = None) -> ft.Container:
     return ft.Container(
-        bgcolor=DARK,
+        bgcolor=ft.colors.SURFACE,
+        border=ft.border.only(bottom=ft.BorderSide(1, ft.colors.OUTLINE)),
         padding=ft.padding.symmetric(vertical=28 if not mobile else 20, horizontal=pad(mobile)),
         content=ft.Column(
             [
@@ -87,14 +96,14 @@ def page_banner(title: str, subtitle: str = "", mobile: bool = False, accent: st
                     title,
                     size=28 if not mobile else 22,
                     weight=ft.FontWeight.BOLD,
-                    color=ft.colors.WHITE,
+                    color=ft.colors.ON_SURFACE,
                     text_align=ft.TextAlign.CENTER,
                 ),
-                ft.Container(width=48, height=3, bgcolor=accent, border_radius=2),
+                ft.Container(width=36, height=2, bgcolor=ft.colors.PRIMARY, border_radius=1),
                 ft.Text(
                     subtitle,
                     size=14,
-                    color="#C8CCD4",
+                    color=ft.colors.ON_SURFACE_VARIANT,
                     text_align=ft.TextAlign.CENTER,
                 )
                 if subtitle
@@ -112,12 +121,12 @@ def section_heading(text: str) -> ft.Text:
 
 def green_button(text: str, on_click, **kw) -> ft.ElevatedButton:
     kw.setdefault("style", _BTN_STYLE)
-    return ft.ElevatedButton(text, bgcolor=GREEN, color=ft.colors.WHITE, on_click=on_click, **kw)
+    return ft.ElevatedButton(text, bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, on_click=on_click, **kw)
 
 
 def dark_button(text: str, on_click, **kw) -> ft.ElevatedButton:
-    kw.setdefault("style", _BTN_STYLE)
-    return ft.ElevatedButton(text, bgcolor=DARK, color=ft.colors.WHITE, on_click=on_click, **kw)
+    kw.setdefault("style", _SECONDARY_BTN_STYLE)
+    return ft.ElevatedButton(text, bgcolor=ft.colors.SURFACE_VARIANT, color=ft.colors.ON_SURFACE, on_click=on_click, **kw)
 
 
 def card(content, col=None, bg=ft.colors.SURFACE, padding=20, on_click=None) -> ft.Container:
@@ -126,8 +135,8 @@ def card(content, col=None, bg=ft.colors.SURFACE, padding=20, on_click=None) -> 
         col=col,
         bgcolor=bg,
         padding=padding,
-        border_radius=12,
-        border=ft.border.all(1, ft.colors.with_opacity(0.18, ft.colors.OUTLINE)),
+        border_radius=10,
+        border=ft.border.all(1, ft.colors.OUTLINE),
         on_click=on_click,
         ink=bool(on_click),
     )
@@ -139,25 +148,26 @@ def code_block(page: ft.Page, code: str, title: str = "Contoh kode") -> ft.Conta
         page.show_snack("Kode disalin ke clipboard.")
 
     return ft.Container(
-        bgcolor="#1E1F26",
-        border_radius=10,
+        bgcolor="#121212",
+        border=ft.border.all(1, "#262626"),
+        border_radius=8,
         padding=ft.padding.only(left=16, right=8, top=4, bottom=14),
         content=ft.Column(
             [
                 ft.Row(
                     [
-                        ft.Text(title, size=11, color="#9AA0A6", weight=ft.FontWeight.W_500),
+                        ft.Text(title, size=11, color="#A1A1AA", weight=ft.FontWeight.W_500),
                         ft.IconButton(
                             ft.icons.COPY,
                             icon_size=15,
-                            icon_color="#9AA0A6",
+                            icon_color="#A1A1AA",
                             tooltip="Salin kode",
                             on_click=copy,
                         ),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
-                ft.Text(code, font_family="monospace", size=13, color="#E6E6E6", selectable=True),
+                ft.Text(code, font_family="monospace", size=13, color="#FAFAFA", selectable=True),
             ],
             spacing=0,
         ),
@@ -194,14 +204,22 @@ def create_header(
 ):
     page._ug_user = user
 
+    header_bg = "#0A0A0A" if dark else "#FFFFFF"
+    subnav_bg = "#121212" if dark else "#F4F4F5"
+    border_col = "#262626" if dark else "#E4E4E7"
+    fg_primary = "#FAFAFA" if dark else "#0A0A0A"
+    fg_muted = "#A1A1AA" if dark else "#52525B"
+    btn_bg = "#FAFAFA" if dark else "#18181B"
+    btn_fg = "#0A0A0A" if dark else "#FFFFFF"
+
     def call(fn, *args):
         return fn(*args) if fn else None
 
     logo = ft.Container(
         content=ft.IconButton(
             icon=ft.icons.CODE,
-            icon_color="#04AA6D",
-            icon_size=24,
+            icon_color=fg_primary,
+            icon_size=22,
             on_click=lambda e: call(on_home_click),
             tooltip="Beranda UG-Stack",
         ),
@@ -209,20 +227,20 @@ def create_header(
     )
     search_btn = ft.IconButton(
         ft.icons.SEARCH,
-        icon_color=ft.colors.WHITE,
+        icon_color=fg_muted,
         icon_size=20,
         tooltip="Cari",
         on_click=lambda e: call(on_search_click),
     )
     theme_btn = ft.IconButton(
         ft.icons.LIGHT_MODE if dark else ft.icons.DARK_MODE,
-        icon_color=ft.colors.WHITE,
+        icon_color=fg_muted,
         icon_size=20,
         tooltip="Tema terang" if dark else "Tema gelap",
         on_click=lambda e: call(on_theme_toggle),
     )
     lang_btn = ft.TextButton(
-        content=ft.Text("🌐 ID", color=ft.colors.WHITE, size=12, weight=ft.FontWeight.BOLD),
+        content=ft.Text("🌐 ID", color=fg_primary, size=12, weight=ft.FontWeight.BOLD),
         tooltip="Ganti bahasa",
         on_click=lambda e: call(on_lang_toggle),
     )
@@ -234,19 +252,23 @@ def create_header(
             items.append(ft.PopupMenuItem(text="Keluar", icon=ft.icons.LOGOUT, on_click=lambda e: call(on_logout_click)))
         else:
             items.append(ft.PopupMenuItem(text="Masuk / Daftar", icon=ft.icons.LOGIN, on_click=lambda e: call(on_login_click)))
-        title = ft.Text("UG-Stack", color=ft.colors.WHITE, weight=ft.FontWeight.BOLD, size=17)
-        actions = [lang_btn, theme_btn, search_btn, ft.PopupMenuButton(icon=ft.icons.MENU, icon_color=ft.colors.WHITE, items=items)]
+        title = ft.Text("UG-Stack", color=fg_primary, weight=ft.FontWeight.BOLD, size=17)
+        actions = [lang_btn, theme_btn, search_btn, ft.PopupMenuButton(icon=ft.icons.MENU, icon_color=fg_primary, items=items)]
     else:
         def nav_button(label, key):
             active = key == active_nav
             return ft.TextButton(
                 content=ft.Text(
                     label,
-                    color="#04AA6D" if active else ft.colors.WHITE,
+                    color=fg_primary if active else fg_muted,
                     size=13,
                     weight=ft.FontWeight.BOLD if active else ft.FontWeight.W_500,
                 ),
-                style=ft.ButtonStyle(padding=ft.padding.symmetric(horizontal=10, vertical=6)),
+                style=ft.ButtonStyle(
+                    bgcolor=subnav_bg if active else None,
+                    shape=ft.RoundedRectangleBorder(radius=6),
+                    padding=ft.padding.symmetric(horizontal=10, vertical=6),
+                ),
                 on_click=lambda e, k=key: call(on_nav_click, k),
             )
 
@@ -266,12 +288,12 @@ def create_header(
                 theme_btn,
                 search_btn,
                 ft.TextButton(
-                    content=ft.Text(f"👤 {disp_header}", color=ft.colors.WHITE, size=13),
+                    content=ft.Text(f"👤 {disp_header}", color=fg_primary, size=13, weight=ft.FontWeight.W_600),
                     on_click=lambda e: call(on_dashboard_click),
                 ),
                 ft.IconButton(
                     ft.icons.LOGOUT,
-                    icon_color=ft.colors.WHITE,
+                    icon_color=fg_muted,
                     icon_size=20,
                     tooltip="Keluar",
                     on_click=lambda e: call(on_logout_click),
@@ -285,8 +307,8 @@ def create_header(
                 search_btn,
                 ft.ElevatedButton(
                     "Masuk",
-                    bgcolor="#04AA6D",
-                    color=ft.colors.WHITE,
+                    bgcolor=btn_bg,
+                    color=btn_fg,
                     style=ft.ButtonStyle(
                         shape=ft.RoundedRectangleBorder(radius=8),
                         padding=ft.padding.symmetric(horizontal=16, vertical=8),
@@ -301,7 +323,7 @@ def create_header(
         ft.TextButton(
             content=ft.Text(
                 l["name"].upper(),
-                color="#04AA6D" if l["key"] == active_lang else "#D8DEE9",
+                color=fg_primary if l["key"] == active_lang else fg_muted,
                 size=11,
                 weight=ft.FontWeight.BOLD if l["key"] == active_lang else ft.FontWeight.W_500,
             ),
@@ -311,20 +333,20 @@ def create_header(
         for l in LANGS
     ]
     sub_nav = ft.Container(
-        bgcolor="#1E2832",
+        bgcolor=subnav_bg,
         padding=ft.padding.symmetric(horizontal=16, vertical=4),
-        border=ft.border.only(bottom=ft.BorderSide(1, "#2A3642")),
+        border=ft.border.only(top=ft.BorderSide(1, border_col), bottom=ft.BorderSide(1, border_col)),
         content=ft.Row(sub_buttons, scroll=ft.ScrollMode.AUTO, spacing=4, alignment=ft.MainAxisAlignment.CENTER),
     )
 
-    appbar = ft.AppBar(leading=logo, title=title, center_title=False, bgcolor="#141A21", elevation=0, actions=actions)
+    appbar = ft.AppBar(leading=logo, title=title, center_title=False, bgcolor=header_bg, elevation=0, actions=actions)
     return appbar, sub_nav
 
 
 def create_footer(on_footer_link=None):
     def make_link(text):
         return ft.TextButton(
-            content=ft.Text(text, color="#94A3B8", size=13),
+            content=ft.Text(text, color=ft.colors.ON_SURFACE_VARIANT, size=13),
             on_click=lambda e: on_footer_link(text) if on_footer_link else None,
             style=ft.ButtonStyle(padding=ft.padding.symmetric(horizontal=4, vertical=4)),
         )
@@ -332,7 +354,7 @@ def create_footer(on_footer_link=None):
     def make_col(title, links):
         return ft.Column(
             [
-                ft.Text(title, weight=ft.FontWeight.BOLD, color="#F8FAFC", size=15),
+                ft.Text(title, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE, size=15),
                 ft.Container(height=4),
                 *links,
             ],
@@ -342,8 +364,8 @@ def create_footer(on_footer_link=None):
         )
 
     return ft.Container(
-        bgcolor="#141A21",
-        border=ft.border.only(top=ft.BorderSide(1, "#2A3642")),
+        bgcolor=ft.colors.SURFACE,
+        border=ft.border.only(top=ft.BorderSide(1, ft.colors.OUTLINE)),
         padding=ft.padding.symmetric(horizontal=32, vertical=36),
         content=ft.Column(
             [
@@ -388,33 +410,33 @@ def create_footer(on_footer_link=None):
                     spacing=20,
                     run_spacing=24,
                 ),
-                ft.Divider(color=ft.colors.with_opacity(0.15, ft.colors.WHITE), height=32),
+                ft.Divider(color=ft.colors.OUTLINE, height=32),
                 ft.Row(
                     [
                         ft.IconButton(
                             ft.icons.PUBLIC,
-                            icon_color=ft.colors.GREY_300,
+                            icon_color=ft.colors.ON_SURFACE_VARIANT,
                             icon_size=20,
                             tooltip="Website Utama",
                             on_click=lambda e: on_footer_link("Website UG-Stack") if on_footer_link else None,
                         ),
                         ft.IconButton(
                             ft.icons.CAMERA_ALT,
-                            icon_color=ft.colors.GREY_300,
+                            icon_color=ft.colors.ON_SURFACE_VARIANT,
                             icon_size=20,
                             tooltip="Instagram Resmi",
                             on_click=lambda e: on_footer_link("Instagram Official") if on_footer_link else None,
                         ),
                         ft.IconButton(
                             ft.icons.CHAT,
-                            icon_color=ft.colors.GREY_300,
+                            icon_color=ft.colors.ON_SURFACE_VARIANT,
                             icon_size=20,
                             tooltip="Komunitas Discord",
                             on_click=lambda e: on_footer_link("Discord Community") if on_footer_link else None,
                         ),
                         ft.IconButton(
                             ft.icons.WORK,
-                            icon_color=ft.colors.GREY_300,
+                            icon_color=ft.colors.ON_SURFACE_VARIANT,
                             icon_size=20,
                             tooltip="Profil LinkedIn",
                             on_click=lambda e: on_footer_link("LinkedIn") if on_footer_link else None,
@@ -427,7 +449,7 @@ def create_footer(on_footer_link=None):
                     [
                         ft.Text(
                             "© 2026 UG-Stack. Platform Edukasi Koding Berbasis Full Python (Flet).",
-                            color=ft.colors.GREY_500,
+                            color=ft.colors.ON_SURFACE_VARIANT,
                             size=12,
                             text_align=ft.TextAlign.CENTER,
                         ),
