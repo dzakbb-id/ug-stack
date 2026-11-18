@@ -79,30 +79,45 @@ def get_data_dir() -> str:
 
 class FileBackend:
     label = "berkas"
+    _file_cache: dict[str, tuple[int, int, str]] = {}
 
     def read(self, name: str):
         path = os.path.join(get_data_dir(), name)
         try:
+            st = os.stat(path)
+            cached = self._file_cache.get(path)
+            if cached is not None and cached[0] == st.st_mtime_ns and cached[1] == st.st_size:
+                return cached[2]
             with open(path, "r", encoding="utf-8") as f:
-                return f.read()
+                text = f.read()
+            self._file_cache[path] = (st.st_mtime_ns, st.st_size, text)
+            return text
         except FileNotFoundError:
+            self._file_cache.pop(path, None)
             return None
         except OSError as e:
             raise StorageError(f"Gagal membaca {name}: {e}")
 
     def write(self, name: str, text: str) -> None:
         path = os.path.join(get_data_dir(), name)
-        tmp = path + ".tmp"
+        tmp = f"{path}.{threading.get_ident()}.tmp"
         try:
             with open(tmp, "w", encoding="utf-8") as f:
                 f.write(text)
             os.replace(tmp, path)          # tulis atomik supaya file tidak setengah jadi
+            try:
+                st = os.stat(path)
+                self._file_cache[path] = (st.st_mtime_ns, st.st_size, text)
+            except OSError:
+                self._file_cache.pop(path, None)
         except OSError as e:
             raise StorageError(f"Gagal menyimpan {name}: {e}")
 
     def delete(self, name: str) -> None:
+        path = os.path.join(get_data_dir(), name)
+        self._file_cache.pop(path, None)
         try:
-            os.remove(os.path.join(get_data_dir(), name))
+            os.remove(path)
         except FileNotFoundError:
             pass
         except OSError as e:

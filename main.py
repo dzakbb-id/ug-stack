@@ -92,7 +92,7 @@ def main(page: ft.Page):
     page.scroll = ft.ScrollMode.AUTO
 
     state = {"user": None, "view": "home", "args": {}, "mobile": None, "history": [], "last_active": time.time(),
-             "lang": i18n.DEFAULT_LANG}
+             "last_touch": time.time(), "session_token": "", "lang": i18n.DEFAULT_LANG}
     startup_error = []
 
     # ---- preferensi tema dan bahasa (disimpan per perangkat: SharedPreferences di APK, localStorage di browser)
@@ -157,6 +157,8 @@ def main(page: ft.Page):
                     save_pref("session", new_tok)
         if restored_user:
             state["user"] = restored_user
+            state["session_token"] = saved_token or ""
+            state["last_touch"] = time.time()
             save_pref("user", sessions.sign_user_backup(restored_user))
             try:
                 import json as _json
@@ -193,10 +195,12 @@ def main(page: ft.Page):
             end_session()
             state["user"] = None
             show_snack("Sesi berakhir karena tidak ada aktivitas. Silakan login kembali.")
-        elif state["user"]:
-            tok = load_pref("session", "")
+        elif state["user"] and now - state.get("last_touch", 0) > 60:
+            tok = state.get("session_token") or load_pref("session", "")
             if tok:
+                state["session_token"] = tok
                 sessions.touch(tok)
+            state["last_touch"] = now
         state["last_active"] = now
 
     def go(view, **args):
@@ -205,22 +209,24 @@ def main(page: ft.Page):
             state["history"].append((state["view"], state["args"]))
             del state["history"][:-20]
         state["view"], state["args"] = view, args
-        try:
-            import json as _json
-            save_pref("view", _json.dumps({"view": view, "args": {k: v for k, v in args.items() if isinstance(v, (str, int))}}))
-        except Exception:
-            pass
+        if state["user"]:
+            try:
+                import json as _json
+                save_pref("view", _json.dumps({"view": view, "args": {k: v for k, v in args.items() if isinstance(v, (str, int))}}))
+            except Exception:
+                pass
         render()
 
     def go_back():
         check_session()
         if state["history"]:
             state["view"], state["args"] = state["history"].pop()
-            try:
-                import json as _json
-                save_pref("view", _json.dumps({"view": state["view"], "args": {k: v for k, v in state["args"].items() if isinstance(v, (str, int))}}))
-            except Exception:
-                pass
+            if state["user"]:
+                try:
+                    import json as _json
+                    save_pref("view", _json.dumps({"view": state["view"], "args": {k: v for k, v in state["args"].items() if isinstance(v, (str, int))}}))
+                except Exception:
+                    pass
             render()
         else:
             go("home")
@@ -266,7 +272,9 @@ def main(page: ft.Page):
     def on_login_success(user):
         state["user"] = user
         state["last_active"] = time.time()
+        state["last_touch"] = time.time()
         token = sessions.create(user)
+        state["session_token"] = token or ""
         save_pref("session", token or "")
         save_pref("user", sessions.sign_user_backup(user))
         show_snack(f"Selamat datang, {auth.greeting_name(user)}!")
@@ -275,7 +283,8 @@ def main(page: ft.Page):
             open_change_password(page, user, forced=True)
 
     def end_session():
-        sessions.revoke(load_pref("session", ""))
+        sessions.revoke(state.get("session_token") or load_pref("session", ""))
+        state["session_token"] = ""
         save_pref("session", "")
         save_pref("user", "")
         save_pref("view", "")

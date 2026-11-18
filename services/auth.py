@@ -417,20 +417,46 @@ def change_username(old_username: str, new_username: str, new_full_name: str = N
 
                 score_data = storage.load_json(quiz.SCORES_FILE, {})
                 if actual_old in score_data:
-                    existing_scores = score_data.get(new_clean, [])
-                    if isinstance(existing_scores, list):
-                        score_data[new_clean] = existing_scores + list(score_data.pop(actual_old, []))
+                    old_scores = score_data.pop(actual_old, {})
+                    existing_scores = score_data.get(new_clean, {})
+                    if isinstance(old_scores, dict) and isinstance(existing_scores, dict):
+                        merged_scores = dict(old_scores)
+                        for lk, rec in existing_scores.items():
+                            if lk in merged_scores and isinstance(merged_scores[lk], dict) and isinstance(rec, dict):
+                                prev_r = merged_scores[lk]
+                                merged_lvls = dict(prev_r.get("levels") or {})
+                                for lvk, lvv in (rec.get("levels") or {}).items():
+                                    merged_lvls[lvk] = max(int(merged_lvls.get(lvk, 0)), int(lvv or 0))
+                                merged_scores[lk] = {
+                                    **prev_r,
+                                    **rec,
+                                    "best": max(int(prev_r.get("best", 0)), int(rec.get("best", 0))),
+                                    "attempts": int(prev_r.get("attempts", 0)) + int(rec.get("attempts", 0)),
+                                    "passed_at": prev_r.get("passed_at") or rec.get("passed_at"),
+                                    "levels": merged_lvls,
+                                }
+                            else:
+                                merged_scores[lk] = rec
+                        score_data[new_clean] = merged_scores
                     else:
-                        score_data[new_clean] = score_data.pop(actual_old)
+                        score_data[new_clean] = existing_scores or old_scores
                     storage.save_json(quiz.SCORES_FILE, score_data)
 
                 enroll_data = storage.load_json(enrollment.ENROLL_FILE, {})
                 if actual_old in enroll_data:
-                    existing_enroll = enroll_data.get(new_clean, [])
-                    for cid in enroll_data.pop(actual_old, []):
-                        if cid not in existing_enroll:
-                            existing_enroll.append(cid)
-                    enroll_data[new_clean] = existing_enroll
+                    old_enr = enroll_data.pop(actual_old, {})
+                    cur_enr = enroll_data.get(new_clean, {})
+                    if isinstance(old_enr, dict) and isinstance(cur_enr, dict):
+                        merged_courses = list(cur_enr.get("courses") or [])
+                        for cid in (old_enr.get("courses") or []):
+                            if cid not in merged_courses:
+                                merged_courses.append(cid)
+                        enroll_data[new_clean] = {
+                            "plan": cur_enr.get("plan") or old_enr.get("plan"),
+                            "courses": merged_courses,
+                        }
+                    else:
+                        enroll_data[new_clean] = cur_enr or old_enr
                     storage.save_json(enrollment.ENROLL_FILE, enroll_data)
 
                 sess_data = storage.load_json(sessions.SESSIONS_FILE, {})
@@ -786,7 +812,11 @@ def verify_approve_token(req_id: int, identifier: str, email: str, token: str) -
     return hmac.compare_digest(clean_tok, expected.lower())
 
 
+_CACHED_LAN_IP: str | None = None
+
+
 def _detect_base_url() -> str:
+    global _CACHED_LAN_IP
     for env_key in ("UG_APP_URL", "RENDER_EXTERNAL_URL"):
         val = (os.getenv(env_key) or "").strip().rstrip("/")
         if val:
@@ -795,16 +825,18 @@ def _detect_base_url() -> str:
     if vercel_url:
         return f"https://{vercel_url}"
     port = (os.getenv("PORT") or "8550").strip()
-    try:
-        import socket
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.settimeout(0.5)
-            s.connect(("8.8.8.8", 80))
-            lan_ip = s.getsockname()[0]
-            if lan_ip and not lan_ip.startswith("127."):
-                return f"http://{lan_ip}:{port}"
-    except Exception:
-        pass
+    if _CACHED_LAN_IP is None:
+        try:
+            import socket
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.settimeout(0.2)
+                s.connect(("8.8.8.8", 80))
+                lan_ip = s.getsockname()[0]
+                _CACHED_LAN_IP = lan_ip if (lan_ip and not lan_ip.startswith("127.")) else ""
+        except Exception:
+            _CACHED_LAN_IP = ""
+    if _CACHED_LAN_IP:
+        return f"http://{_CACHED_LAN_IP}:{port}"
     return f"http://127.0.0.1:{port}"
 
 

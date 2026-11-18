@@ -190,6 +190,7 @@ def get_quiz_view(
     page._ug_quiz_token = quiz_token
     state = {
         "finished": False,
+        "current_idx": 0,
         "start_time": time.time(),
         "max_duration": QUIZ_DURATION_SECONDS,
         "remaining": QUIZ_DURATION_SECONDS,
@@ -199,6 +200,7 @@ def get_quiz_view(
     }
 
     groups, feedback = [], []
+    explain_boxes = []
     q_controls = []
     q_num_badges = []
     q_status_badges = []
@@ -219,12 +221,41 @@ def get_quiz_view(
         weight=ft.FontWeight.W_600,
         color=ft.colors.ON_SURFACE_VARIANT,
     )
+    step_indicator = ft.Text(
+        f"1 / {len(questions)}",
+        size=13,
+        weight=ft.FontWeight.BOLD,
+        color=ft.colors.ON_SURFACE_VARIANT,
+    )
+    prev_q_btn = dark_button(
+        "❮ Sebelumnya",
+        lambda e: _go_to_q(state["current_idx"] - 1),
+        disabled=True,
+    )
+    next_q_btn = green_button(
+        "Selanjutnya ❯",
+        lambda e: _go_to_q(state["current_idx"] + 1),
+        disabled=len(questions) <= 1,
+    )
 
-    def _scroll_to_q(idx: int):
-        try:
-            page.scroll_to(key=f"quiz_q_{idx}", duration=250)
-        except Exception:
-            pass
+    def _go_to_q(idx: int):
+        if not questions:
+            return
+        idx = max(0, min(int(idx), len(questions) - 1))
+        state["current_idx"] = idx
+        if state["finished"]:
+            try:
+                page.scroll_to(key=f"quiz_q_{idx}", duration=250)
+            except Exception:
+                pass
+            return
+        for i, qc in enumerate(q_controls):
+            qc.visible = i == idx
+        prev_q_btn.disabled = idx <= 0
+        next_q_btn.disabled = idx >= len(questions) - 1
+        step_indicator.value = f"{idx + 1} / {len(questions)}"
+        _refresh_question_indicators()
+        page.update()
 
     def _make_q_box(idx: int) -> ft.Container:
         return ft.Container(
@@ -232,24 +263,26 @@ def get_quiz_view(
             height=30,
             border_radius=6,
             bgcolor=YELLOW,
-            border=ft.border.all(1, YELLOW),
+            border=ft.border.all(2 if idx == 0 else 1, ft.colors.ON_SURFACE if idx == 0 else YELLOW),
             alignment=ft.alignment.center,
             ink=True,
             tooltip=f"Soal {idx + 1}",
-            on_click=lambda e, i=idx: _scroll_to_q(i),
+            on_click=lambda e, i=idx: _go_to_q(i),
             content=ft.Text(str(idx + 1), size=12, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE),
         )
 
     def _refresh_question_indicators():
         answered_n = 0
+        cur_idx = state.get("current_idx", 0)
         for idx, rg in enumerate(groups):
             is_ans = (rg.value is not None) and (not in_process_flags[idx])
             if is_ans:
                 answered_n += 1
             active_color = GREEN if is_ans else YELLOW
+            is_cur = (not state["finished"]) and (idx == cur_idx)
             for box in (header_box_items[idx], hud_box_items[idx]):
                 box.bgcolor = active_color
-                box.border = ft.border.all(1, active_color)
+                box.border = ft.border.all(2 if is_cur else 1, ft.colors.ON_SURFACE if is_cur else active_color)
                 box.content.color = ft.colors.WHITE
                 box.content.weight = ft.FontWeight.BOLD
             q_badge = q_num_badges[idx]
@@ -317,16 +350,25 @@ def get_quiz_view(
                 spacing=2,
             ),
         )
-        fb = ft.Text("", size=13)
+        fb = ft.Text("", size=13, selectable=True)
+        explain_box = ft.Container(
+            visible=False,
+            bgcolor=ft.colors.SURFACE_VARIANT,
+            border=ft.border.all(1, ft.colors.OUTLINE),
+            border_radius=8,
+            padding=12,
+            content=fb,
+        )
         groups.append(rg)
         feedback.append(fb)
+        explain_boxes.append(explain_box)
         q_card = card(
             ft.Column(
                 [
                     ft.Row(
                         [
                             ft.Row([q_badge, s_badge], spacing=6, wrap=True),
-                            chip(f"Level: {q.get('level', lvl_name)}", "#ECFDF5", "#065F46"),
+                            chip(f"Level: {q.get('level', lvl_name)}"),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -334,13 +376,14 @@ def get_quiz_view(
                     ),
                     ft.Text(f"{i + 1}. {q['q']}", size=16, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
                     rg,
-                    fb,
+                    explain_box,
                 ],
-                spacing=8,
+                spacing=10,
             )
         )
         q_card.border = ft.border.all(1.5, YELLOW)
         q_card.key = f"quiz_q_{i}"
+        q_card.visible = i == 0
         q_controls.append(q_card)
 
     # Ukuran waktu timer diperbesar agar sangat jelas terlihat dan mengikuti scroll
@@ -522,6 +565,19 @@ def get_quiz_view(
 
     result_box = ft.Column(spacing=10)
     submit_btn = green_button("Periksa jawaban", lambda e: submit(auto_timeout=False))
+    q_nav_bar = card(
+        ft.Row(
+            [
+                prev_q_btn,
+                step_indicator,
+                ft.Row([next_q_btn, submit_btn], spacing=8, wrap=True),
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            wrap=True,
+        ),
+        padding=14,
+    )
 
     def _update_timer_display(rem_sec: int):
         max_dur = max(QUIZ_DURATION_SECONDS, state["max_duration"])
@@ -649,6 +705,8 @@ def get_quiz_view(
             return
         answers = [int(g.value) if g.value is not None else None for g in groups]
         if not auto_timeout and None in answers:
+            first_empty = answers.index(None)
+            _go_to_q(first_empty)
             page.show_snack("Jawab semua soal terlebih dahulu.")      # validasi input
             return
         state["finished"] = True
@@ -674,14 +732,20 @@ def get_quiz_view(
         res = quiz_service.grade(key, answers, questions=questions, level=lvl_key)
         for i, d in enumerate(res["details"]):
             groups[i].disabled = True
+            q_controls[i].visible = True
             ans_key_line = f"🔑 Kunci Jawaban: {d['answer_letter']}. {d['answer_text']}"
             explain_line = f"💡 Penjelasan: {d['explain']}"
             prefix = "✓ Benar. " if d["correct"] else "✗ Kurang tepat. "
             feedback[i].value = f"{prefix}{ans_key_line} — {explain_line}"
             feedback[i].color = GREEN if d["correct"] else ft.colors.ERROR
             feedback[i].weight = ft.FontWeight.W_600
+            explain_boxes[i].border = ft.border.all(1, GREEN if d["correct"] else ft.colors.ERROR)
+            explain_boxes[i].visible = True
 
         submit_btn.disabled = True
+        prev_q_btn.disabled = True
+        next_q_btn.disabled = True
+        _refresh_question_indicators()
         verdict = "Selamat, Anda lulus! 🎉" if res["passed"] else f"Belum lulus (minimal {PASS_PERCENT}%). Pelajari lagi lalu coba kembali."
         controls = [
             ft.Container(
@@ -741,10 +805,11 @@ def get_quiz_view(
                     if rem <= 0:
                         submit(auto_timeout=True)
                         return
-                    if getattr(timer_card, "page", None):
-                        timer_card.update()
-                        if getattr(floating_hud, "page", None):
-                            floating_hud.update()
+                    if getattr(timer_text, "page", None):
+                        timer_text.update()
+                        timer_bar.update()
+                        if getattr(hud_timer_text, "page", None):
+                            hud_timer_text.update()
                     else:
                         page.update()
                 except Exception:
@@ -786,9 +851,9 @@ def get_quiz_view(
                     [
                         ft.Row(top_actions, alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
                         timer_card,
-                        *q_controls,
-                        submit_btn,
                         result_box,
+                        *q_controls,
+                        q_nav_bar,
                     ],
                     spacing=14,
                 ),

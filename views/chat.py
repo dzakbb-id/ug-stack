@@ -38,7 +38,7 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
         if ok:
             render(do_update=True)
 
-    def _build_bubble(m: dict, cur_username: str) -> ft.Control:
+    def _build_bubble(m: dict, cur_username: str, avatar_map: dict) -> ft.Control:
         sender = m.get("username", "")
         full_name = (m.get("full_name") or "").strip()
         role = m.get("role", "mahasiswa")
@@ -62,7 +62,7 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
             badge = chip("MAHASISWA")
 
         header_items = [
-            user_avatar_badge(full_name or sender, auth.get_avatar(sender), size=26),
+            user_avatar_badge(full_name or sender, avatar_map.get(sender.lower(), ""), size=26),
             ft.Text(disp_name, weight=ft.FontWeight.BOLD, size=13, color=ft.colors.ON_SURFACE),
             badge,
             ft.Text(m.get("time", ""), size=11, color=ft.colors.ON_SURFACE_VARIANT),
@@ -85,10 +85,10 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
             bgcolor=bubble_bg,
             padding=14,
             border_radius=ft.border_radius.only(
-                top_left=12,
-                top_right=12,
-                bottom_left=4 if is_cs_staff else 12,
-                bottom_right=4 if is_me else 12,
+                top_left=10,
+                top_right=10,
+                bottom_left=4 if is_cs_staff else 10,
+                bottom_right=4 if is_me else 10,
             ),
             border=ft.border.all(1, border_col),
             content=ft.Column(
@@ -106,7 +106,16 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
         u = active_user or getattr(page, "_ug_user", None)
         cur_uname = (u or {}).get("username", "")
         msgs = chat.list_messages(state["channel"])
-        msg_col.controls = [_build_bubble(m, cur_uname) for m in msgs] or [
+        try:
+            from services import storage as _st
+            avatar_map = {
+                str(usr.get("username") or "").lower(): str(usr.get("avatar") or "")
+                for usr in _st.load_json(auth.USERS_FILE, [])
+                if isinstance(usr, dict) and usr.get("username")
+            }
+        except Exception:
+            avatar_map = {}
+        msg_col.controls = [_build_bubble(m, cur_uname, avatar_map) for m in msgs] or [
             ft.Text("Belum ada data.", size=13, color=ft.colors.ON_SURFACE_VARIANT)
         ]
         translate_tree(msg_col, ui_lang)

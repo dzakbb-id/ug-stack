@@ -51,14 +51,14 @@ def lang_logo(name_or_key: str, size: int = 28) -> ft.Image:
     )
 
 _BTN_STYLE = ft.ButtonStyle(
-    shape=ft.RoundedRectangleBorder(radius=24),
-    padding=ft.padding.symmetric(horizontal=20, vertical=12),
+    shape=ft.RoundedRectangleBorder(radius=8),
+    padding=ft.padding.symmetric(horizontal=18, vertical=12),
     elevation=0,
 )
 
 _SECONDARY_BTN_STYLE = ft.ButtonStyle(
-    shape=ft.RoundedRectangleBorder(radius=24),
-    padding=ft.padding.symmetric(horizontal=20, vertical=12),
+    shape=ft.RoundedRectangleBorder(radius=8),
+    padding=ft.padding.symmetric(horizontal=18, vertical=12),
     side=ft.BorderSide(1, ft.colors.OUTLINE),
     elevation=0,
 )
@@ -78,19 +78,11 @@ def link_text(text: str, url: str, size: int = 13, color: str = ACCENT) -> ft.Te
 
 def chip(text: str, bg: str = None, fg: str = None) -> ft.Container:
     return ft.Container(
-        ft.Row(
-            [
-                ft.Container(width=5, height=5, border_radius=3, bgcolor=ACCENT),
-                ft.Text(text, size=11, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE),
-            ],
-            spacing=6,
-            tight=True,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
+        ft.Text(text, size=11, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE),
         bgcolor=ft.colors.SURFACE_VARIANT,
         border=ft.border.all(1, ft.colors.OUTLINE),
         padding=ft.padding.symmetric(horizontal=10, vertical=4),
-        border_radius=20,
+        border_radius=6,
     )
 
 
@@ -98,24 +90,17 @@ def page_banner(title: str, subtitle: str = "", mobile: bool = False, accent: st
     return ft.Container(
         bgcolor=ft.colors.SURFACE,
         border=ft.border.only(bottom=ft.BorderSide(1, ft.colors.OUTLINE)),
-        padding=ft.padding.symmetric(vertical=32 if not mobile else 22, horizontal=pad(mobile)),
+        padding=ft.padding.symmetric(vertical=26 if not mobile else 18, horizontal=pad(mobile)),
         content=ft.Column(
             [
-                ft.Row(
-                    [
-                        ft.Container(width=8, height=8, border_radius=4, bgcolor=ACCENT),
-                        ft.Container(width=32, height=2, bgcolor=ft.colors.ON_SURFACE),
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=6,
-                ),
                 ft.Text(
                     title,
-                    size=32 if not mobile else 24,
-                    weight=ft.FontWeight.W_900,
+                    size=28 if not mobile else 22,
+                    weight=ft.FontWeight.BOLD,
                     color=ft.colors.ON_SURFACE,
                     text_align=ft.TextAlign.CENTER,
                 ),
+                ft.Container(width=36, height=3, bgcolor=accent, border_radius=2),
                 ft.Text(
                     subtitle,
                     size=14,
@@ -132,7 +117,7 @@ def page_banner(title: str, subtitle: str = "", mobile: bool = False, accent: st
 
 
 def section_heading(text: str) -> ft.Text:
-    return ft.Text(text, size=20, weight=ft.FontWeight.W_900, color=ft.colors.ON_SURFACE)
+    return ft.Text(text, size=19, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE)
 
 
 def green_button(text: str, on_click, **kw) -> ft.ElevatedButton:
@@ -151,7 +136,7 @@ def card(content, col=None, bg=ft.colors.SURFACE, padding=20, on_click=None) -> 
         col=col,
         bgcolor=bg,
         padding=padding,
-        border_radius=8,
+        border_radius=10,
         border=ft.border.all(1, ft.colors.OUTLINE),
         on_click=on_click,
         ink=bool(on_click),
@@ -164,7 +149,7 @@ def code_block(page: ft.Page, code: str, title: str = "Contoh kode") -> ft.Conta
         page.show_snack("Kode disalin ke clipboard.")
 
     return ft.Container(
-        bgcolor="#0E0E11",
+        bgcolor="#111114",
         border=ft.border.all(1, "#27272A"),
         border_radius=8,
         padding=ft.padding.only(left=16, right=8, top=4, bottom=14),
@@ -172,14 +157,7 @@ def code_block(page: ft.Page, code: str, title: str = "Contoh kode") -> ft.Conta
             [
                 ft.Row(
                     [
-                        ft.Row(
-                            [
-                                ft.Container(width=6, height=6, border_radius=3, bgcolor=ACCENT),
-                                ft.Text(title, size=11, color="#A1A1AA", weight=ft.FontWeight.W_600),
-                            ],
-                            spacing=6,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
+                        ft.Text(title, size=11, color="#A1A1AA", weight=ft.FontWeight.W_600),
                         ft.IconButton(
                             ft.icons.COPY,
                             icon_size=15,
@@ -330,8 +308,8 @@ def create_header(
                     bgcolor=ACCENT,
                     color=ft.colors.WHITE,
                     style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=20),
-                        padding=ft.padding.symmetric(horizontal=18, vertical=8),
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.padding.symmetric(horizontal=16, vertical=8),
                         elevation=0,
                     ),
                     on_click=lambda e: call(on_login_click),
@@ -339,31 +317,25 @@ def create_header(
                 ft.Container(width=12),
             ]
 
-    # Ticker bar hitam editorial dengan pemisah titik merah (#EF4444) seperti pada gambar referensi
-    sub_controls = []
-    for idx_l, l in enumerate(LANGS):
-        if idx_l > 0:
-            sub_controls.append(ft.Container(width=4, height=4, border_radius=2, bgcolor=ACCENT))
-        is_act = l["key"] == active_lang
-        sub_controls.append(
-            ft.TextButton(
-                content=ft.Text(
-                    l["name"].upper(),
-                    color=ACCENT if is_act else "#F4F4F5",
-                    size=11,
-                    weight=ft.FontWeight.W_900 if is_act else ft.FontWeight.W_600,
-                ),
-                on_click=lambda e, k=l["key"]: call(on_lang_click, k),
-                style=ft.ButtonStyle(padding=ft.padding.symmetric(horizontal=10, vertical=4)),
-            )
+    sub_buttons = [
+        ft.TextButton(
+            content=ft.Text(
+                l["name"].upper(),
+                color=ACCENT if l["key"] == active_lang else "#E4E4E7",
+                size=11,
+                weight=ft.FontWeight.BOLD if l["key"] == active_lang else ft.FontWeight.W_500,
+            ),
+            on_click=lambda e, k=l["key"]: call(on_lang_click, k),
+            style=ft.ButtonStyle(padding=ft.padding.symmetric(horizontal=10, vertical=4)),
         )
-
+        for l in LANGS
+    ]
     sub_nav = ft.Container(
-        bgcolor="#0B0B0D",
+        bgcolor="#111114",
         padding=ft.padding.symmetric(horizontal=16, vertical=4),
         border=ft.border.only(top=ft.BorderSide(1, "#27272A"), bottom=ft.BorderSide(1, "#27272A")),
         content=ft.Row(
-            sub_controls,
+            sub_buttons,
             scroll=ft.ScrollMode.AUTO,
             spacing=4,
             alignment=ft.MainAxisAlignment.CENTER,
@@ -378,7 +350,7 @@ def create_header(
 def create_footer(on_footer_link=None):
     def make_link(text):
         return ft.TextButton(
-            content=ft.Text(text, color="#A1A1AA", size=13),
+            content=ft.Text(text, color=ft.colors.ON_SURFACE_VARIANT, size=13),
             on_click=lambda e: on_footer_link(text) if on_footer_link else None,
             style=ft.ButtonStyle(padding=ft.padding.symmetric(horizontal=4, vertical=4)),
         )
@@ -386,14 +358,7 @@ def create_footer(on_footer_link=None):
     def make_col(title, links):
         return ft.Column(
             [
-                ft.Row(
-                    [
-                        ft.Container(width=6, height=6, border_radius=3, bgcolor=ACCENT),
-                        ft.Text(title, weight=ft.FontWeight.W_900, color="#FAFAFA", size=14),
-                    ],
-                    spacing=6,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
+                ft.Text(title, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE, size=14),
                 ft.Container(height=4),
                 *links,
             ],
@@ -403,9 +368,9 @@ def create_footer(on_footer_link=None):
         )
 
     return ft.Container(
-        bgcolor="#0B0B0D",
-        border=ft.border.only(top=ft.BorderSide(1, "#27272A")),
-        padding=ft.padding.symmetric(horizontal=32, vertical=40),
+        bgcolor=ft.colors.SURFACE,
+        border=ft.border.only(top=ft.BorderSide(1, ft.colors.OUTLINE)),
+        padding=ft.padding.symmetric(horizontal=32, vertical=36),
         content=ft.Column(
             [
                 ft.ResponsiveRow(
@@ -449,33 +414,33 @@ def create_footer(on_footer_link=None):
                     spacing=20,
                     run_spacing=24,
                 ),
-                ft.Divider(color="#27272A", height=32),
+                ft.Divider(color=ft.colors.OUTLINE, height=32),
                 ft.Row(
                     [
                         ft.IconButton(
                             ft.icons.PUBLIC,
-                            icon_color="#A1A1AA",
+                            icon_color=ft.colors.ON_SURFACE_VARIANT,
                             icon_size=20,
                             tooltip="Website Utama",
                             on_click=lambda e: on_footer_link("Website UG-Stack") if on_footer_link else None,
                         ),
                         ft.IconButton(
                             ft.icons.CAMERA_ALT,
-                            icon_color="#A1A1AA",
+                            icon_color=ft.colors.ON_SURFACE_VARIANT,
                             icon_size=20,
                             tooltip="Instagram Resmi",
                             on_click=lambda e: on_footer_link("Instagram Official") if on_footer_link else None,
                         ),
                         ft.IconButton(
                             ft.icons.CHAT,
-                            icon_color="#A1A1AA",
+                            icon_color=ft.colors.ON_SURFACE_VARIANT,
                             icon_size=20,
                             tooltip="Komunitas Discord",
                             on_click=lambda e: on_footer_link("Discord Community") if on_footer_link else None,
                         ),
                         ft.IconButton(
                             ft.icons.WORK,
-                            icon_color="#A1A1AA",
+                            icon_color=ft.colors.ON_SURFACE_VARIANT,
                             icon_size=20,
                             tooltip="Profil LinkedIn",
                             on_click=lambda e: on_footer_link("LinkedIn") if on_footer_link else None,
@@ -488,7 +453,7 @@ def create_footer(on_footer_link=None):
                     [
                         ft.Text(
                             "© 2026 UG-Stack. Platform Edukasi Koding Berbasis Full Python (Flet).",
-                            color="#71717A",
+                            color=ft.colors.ON_SURFACE_VARIANT,
                             size=12,
                             text_align=ft.TextAlign.CENTER,
                         ),

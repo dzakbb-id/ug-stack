@@ -34,7 +34,7 @@ SAMPLES = SAMPLES_ID
 HOME_TABS = ("HTML", "CSS", "JavaScript", "Python", "SQL")
 
 _TAB_STYLE = ft.ButtonStyle(
-    shape=ft.RoundedRectangleBorder(radius=20),
+    shape=ft.RoundedRectangleBorder(radius=8),
     padding=ft.padding.symmetric(horizontal=16, vertical=8),
     side=ft.BorderSide(1, ft.colors.OUTLINE),
     elevation=0,
@@ -101,8 +101,8 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
             controls=[
                 ft.Text(
                     "Apa yang ingin Anda pelajari?",
-                    size=28,
-                    weight=ft.FontWeight.W_900,
+                    size=26,
+                    weight=ft.FontWeight.BOLD,
                     color=ft.colors.ON_SURFACE,
                     text_align=ft.TextAlign.CENTER,
                 ),
@@ -115,7 +115,7 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
                 tab_buttons,
                 ft.Container(
                     bgcolor=ft.colors.SURFACE,
-                    border_radius=8,
+                    border_radius=10,
                     border=ft.border.all(1, ft.colors.OUTLINE),
                     padding=22,
                     content=ft.Column(
@@ -124,20 +124,13 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
                         controls=[
                             ft.Row(
                                 [
-                                    ft.Row(
-                                        [
-                                            ft.Container(width=6, height=6, border_radius=3, bgcolor="#EF4444"),
-                                            ft.Text("Contoh Kode:", weight=ft.FontWeight.W_900, size=15, color=ft.colors.ON_SURFACE),
-                                        ],
-                                        spacing=8,
-                                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                    ),
+                                    ft.Text("Contoh Kode:", weight=ft.FontWeight.BOLD, size=15, color=ft.colors.ON_SURFACE),
                                     ft.Icon(ft.icons.CODE, size=18, color="#EF4444"),
                                 ],
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             ),
                             ft.Container(
-                                bgcolor="#0E0E11",
+                                bgcolor="#111114",
                                 border=ft.border.all(1, "#27272A"),
                                 padding=16,
                                 border_radius=8,
@@ -150,7 +143,7 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
                                         bgcolor="#EF4444",
                                         color=ft.colors.WHITE,
                                         style=ft.ButtonStyle(
-                                            shape=ft.RoundedRectangleBorder(radius=24),
+                                            shape=ft.RoundedRectangleBorder(radius=8),
                                             padding=ft.padding.symmetric(horizontal=22, vertical=12),
                                             elevation=0,
                                         ),

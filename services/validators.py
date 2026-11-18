@@ -1,7 +1,7 @@
 """Validasi input pengguna."""
 import re
 
-BAHASA = ["HTML", "CSS", "JavaScript", "Python", "SQL", "PHP", "Java", "C++", "C#", "React", "MySQL"]
+BAHASA = ["HTML", "CSS", "JavaScript", "Python", "SQL", "PHP", "Java", "C++", "C#", "React", "MySQL", "C"]
 LEVELS = ["Beginner", "Intermediate", "Advanced"]
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{4,20}$")
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")

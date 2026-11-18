@@ -636,6 +636,21 @@ class TestEndToEndUI(unittest.TestCase):
         # 5. tools/admin_code.py memastikan secret tersedia
         self.assertIsNotNone(admin_code_cli.admin_code.get_secret())
 
+        # 6. Ubah username tetap mempertahankan struktur dict pada scores.json dan enrollments.json tanpa merusaknya
+        from services import enrollment, quiz
+        quiz.save_result("mhs_kunci", "python", quiz.grade("python", [q["answer"] for q in QUIZZES["python"]]))
+        enrollment.set_plan("mhs_kunci", "pro")
+        enrollment.enroll("mhs_kunci", "python")
+        ok_ren, _ = auth.change_username("mhs_kunci", "mhs_baru")
+        self.assertTrue(ok_ren)
+        res_after = quiz.get_results("mhs_baru")
+        self.assertIsInstance(res_after, dict)
+        self.assertEqual(res_after["python"]["best"], 100)
+        self.assertIsNotNone(quiz.certificate("mhs_baru", "python"))
+        enr_after = enrollment.get_info("mhs_baru")
+        self.assertEqual(enr_after["plan"], "pro")
+        self.assertIn("python", enr_after["courses"])
+
     def test_T81_fitur_quiz_level_sticky_timer_kotak_hijau_popup_kunci_dan_bonus_reload(self):
         """Uji level quiz (Beginner/Intermediate/Professional), sticky HUD timer, kotak soal kuning (sedang proses) & hijau (dijawab), bonus +5 menit reload, pop-up nilai, dan kunci jawaban."""
         from components.ui import GREEN
@@ -671,7 +686,25 @@ class TestEndToEndUI(unittest.TestCase):
             min_btns[0].on_click(DummyEvent(min_btns[0]))
             self.assertTrue(hud.content.controls[1].visible)
 
-            # 2. Pastikan kotak nomor soal awalnya berwarna kuning (YELLOW = sedang proses), dan berubah menjadi hijau (GREEN) saat dijawab
+            # 2. Pastikan soal ditampilkan satu per satu (Next / Sebelumnya), dan kotak nomor soal berubah dari kuning (YELLOW) ke hijau (GREEN)
+            q_cards = [c for c in walk_controls(page.controls[1]) if isinstance(c, ft.Container) and str(getattr(c, "key", "")).startswith("quiz_q_")]
+            self.assertEqual(len(q_cards), 20)
+            self.assertEqual([c.visible for c in q_cards].count(True), 1)
+            self.assertTrue(q_cards[0].visible)
+            self.assertFalse(q_cards[1].visible)
+
+            next_btns = find_buttons(page.controls[1], "Selanjutnya")
+            prev_btns = find_buttons(page.controls[1], "Sebelumnya")
+            self.assertTrue(next_btns and prev_btns)
+            self.assertTrue(prev_btns[0].disabled)
+            next_btns[0].on_click(DummyEvent(next_btns[0]))
+            self.assertFalse(q_cards[0].visible)
+            self.assertTrue(q_cards[1].visible)
+            self.assertFalse(prev_btns[0].disabled)
+            prev_btns[0].on_click(DummyEvent(prev_btns[0]))
+            self.assertTrue(q_cards[0].visible)
+            self.assertFalse(q_cards[1].visible)
+
             hud_boxes = [c for c in walk_controls(hud) if isinstance(c, ft.Container) and getattr(c, "tooltip", "") and str(c.tooltip).startswith("Soal ")]
             self.assertEqual(len(hud_boxes), 20)
             self.assertEqual(hud_boxes[0].bgcolor, YELLOW)
@@ -689,7 +722,7 @@ class TestEndToEndUI(unittest.TestCase):
             hud_texts_after_bonus = " ".join(str(getattr(c, "value", "") or "") for c in walk_controls(hud) if isinstance(c, ft.Text))
             self.assertIn("15:00", hud_texts_after_bonus)
 
-            # 4. Jawab semua soal, periksa jawaban -> pastikan Pop-up Nilai muncul + Kunci Jawaban & Penjelasan tampil di tiap soal
+            # 4. Jawab semua soal, periksa jawaban -> pastikan semua soal tampil beserta Kunci Jawaban & Penjelasan dan Pop-up Nilai muncul
             for idx_q, rg in enumerate(rgs):
                 rg.value = str(page._ug_quiz_questions[idx_q]["answer"])
                 rg.on_change(DummyEvent(rg))
@@ -697,6 +730,7 @@ class TestEndToEndUI(unittest.TestCase):
 
             check_btns = find_buttons(page.controls[1], "Periksa jawaban")
             check_btns[0].on_click(DummyEvent(check_btns[0]))
+            self.assertTrue(all(c.visible for c in q_cards))
 
             self.assertIsNotNone(page.dialog)
             self.assertTrue(page.dialog.open)
