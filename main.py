@@ -41,22 +41,22 @@ def main(page: ft.Page):
     page.title = "UG-Stack - Belajar Coding"
     page.theme = ft.Theme(
         color_scheme=ft.ColorScheme(
-            primary="#18181B",
+            primary="#EF4444",
             on_primary="#FFFFFF",
-            primary_container="#F4F4F5",
+            primary_container="#EAEAE8",
             on_primary_container="#0A0A0A",
-            secondary="#3F3F46",
+            secondary="#111113",
             on_secondary="#FFFFFF",
             secondary_container="#E4E4E7",
-            on_secondary_container="#18181B",
-            background="#FAFAFA",
+            on_secondary_container="#0A0A0A",
+            background="#F4F4F5",
             on_background="#0A0A0A",
             surface="#FFFFFF",
             on_surface="#0A0A0A",
-            surface_variant="#F4F4F5",
+            surface_variant="#EAEAE8",
             on_surface_variant="#52525B",
-            outline="#E4E4E7",
-            outline_variant="#F4F4F5",
+            outline="#D4D4D8",
+            outline_variant="#E4E4E7",
             error="#DC2626",
             on_error="#FFFFFF",
             surface_tint="#FFFFFF",
@@ -64,25 +64,25 @@ def main(page: ft.Page):
     )
     page.dark_theme = ft.Theme(
         color_scheme=ft.ColorScheme(
-            primary="#FAFAFA",
-            on_primary="#0A0A0A",
-            primary_container="#18181B",
+            primary="#EF4444",
+            on_primary="#FFFFFF",
+            primary_container="#1A1A1E",
             on_primary_container="#FAFAFA",
-            secondary="#D4D4D8",
-            on_secondary="#0A0A0A",
+            secondary="#FAFAFA",
+            on_secondary="#0B0B0D",
             secondary_container="#27272A",
             on_secondary_container="#FAFAFA",
-            background="#0A0A0A",
+            background="#0B0B0D",
             on_background="#FAFAFA",
-            surface="#121212",
+            surface="#141417",
             on_surface="#FAFAFA",
-            surface_variant="#1C1C1F",
+            surface_variant="#1C1C20",
             on_surface_variant="#A1A1AA",
-            outline="#262626",
-            outline_variant="#1C1C1F",
+            outline="#27272A",
+            outline_variant="#1C1C20",
             error="#EF4444",
             on_error="#FFFFFF",
-            surface_tint="#121212",
+            surface_tint="#141417",
         )
     )
     page.bgcolor = ft.colors.BACKGROUND
@@ -485,17 +485,17 @@ def handle_reset_approve_html(req_id: int, token: str) -> tuple[int, str]:
     reply_mailto = rec.get("reply_mailto", "")
     html = (
         "<!doctype html><html><head><meta charset='utf-8'><title>Reset Password Disetujui</title></head>"
-        "<body style='font-family:Inter,system-ui,sans-serif;padding:32px;background:#0A0A0A;color:#FAFAFA;'>"
-        "<div style='max-width:560px;margin:0 auto;padding:24px;background:#121212;border:1px solid #262626;border-radius:10px;'>"
-        "<h2 style='color:#FAFAFA;margin-top:0;'>✅ Reset Password Disetujui (Berlaku 10 Menit)</h2>"
+        "<body style='font-family:Inter,system-ui,sans-serif;padding:32px;background:#0B0B0D;color:#FAFAFA;'>"
+        "<div style='max-width:560px;margin:0 auto;padding:24px;background:#141417;border:1px solid #27272A;border-radius:10px;'>"
+        "<h2 style='color:#EF4444;margin-top:0;'>✅ Reset Password Disetujui (Berlaku 10 Menit)</h2>"
         f"<p style='color:#A1A1AA;'>{msg}</p>"
         f"<p style='line-height:1.7;'>Username / NPM: <b>{rec.get('matched_username', '')}</b><br>"
         f"Password Sementara (10 Menit): <b style='color:#FAFAFA;background:#27272A;padding:2px 6px;border-radius:4px;'>{rec.get('temp_password', '')}</b><br>"
         f"Kode Reset (10 Menit): <code>{rec.get('reset_token', '')}</code><br>"
         f"Email Tujuan: <b>{rec.get('email', '')}</b></p>"
         f"<div style='margin-top:20px;'>"
-        f"<a href='{reply_gmail}' style='display:inline-block;padding:10px 18px;background:#FAFAFA;color:#0A0A0A;text-decoration:none;border-radius:8px;font-weight:bold;margin-right:8px;'>📧 Buka Balasan Gmail</a>"
-        f"<a href='{reply_mailto}' style='display:inline-block;padding:10px 18px;background:#1C1C1F;color:#FAFAFA;border:1px solid #262626;text-decoration:none;border-radius:8px;'>✉️ Buka Aplikasi Email</a>"
+        f"<a href='{reply_gmail}' style='display:inline-block;padding:10px 18px;background:#EF4444;color:#FFFFFF;text-decoration:none;border-radius:24px;font-weight:bold;margin-right:8px;'>📧 Buka Balasan Gmail</a>"
+        f"<a href='{reply_mailto}' style='display:inline-block;padding:10px 18px;background:#1C1C20;color:#FAFAFA;border:1px solid #27272A;text-decoration:none;border-radius:24px;'>✉️ Buka Aplikasi Email</a>"
         f"</div></div></body></html>"
     )
     return 200, html
