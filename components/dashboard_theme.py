@@ -1,4 +1,4 @@
-"""Komponen tema Dashboard Editorial Minimalis (Putih, Abu-abu, Hitam & Aksen Coral-Red #EF4444)."""
+"""Komponen tema Dashboard Minimalis Profesional (Nyaman di Mata — Terang Alabaster & Gelap Obsidian)."""
 import flet as ft
 
 BG_MAIN = ft.colors.BACKGROUND
@@ -8,11 +8,11 @@ BG_CARD_ALT = ft.colors.SURFACE_VARIANT
 BORDER_SUBTLE = ft.colors.OUTLINE
 TEXT_PRIMARY = ft.colors.ON_SURFACE
 TEXT_MUTED = ft.colors.ON_SURFACE_VARIANT
-ACCENT_ORANGE = "#71717A"
-ACCENT_GREEN = "#EF4444"
+ACCENT_ORANGE = "#64748B"
+ACCENT_GREEN = ft.colors.PRIMARY
 
 
-def glass_card(content: ft.Control, col=None, padding=18, bg=BG_CARD, border_color=BORDER_SUBTLE, radius=8) -> ft.Container:
+def glass_card(content: ft.Control, col=None, padding=20, bg=BG_CARD, border_color=BORDER_SUBTLE, radius=12) -> ft.Container:
     """Kartu minimalis ringan dengan border tipis 1px dan permukaan bersih."""
     return ft.Container(
         content=content,
@@ -25,26 +25,19 @@ def glass_card(content: ft.Control, col=None, padding=18, bg=BG_CARD, border_col
 
 
 def kpi_glow_card(label: str, value_str: str, icon_name: str, glow_color: str = None, sub_label: str = "", col=None) -> ft.Container:
-    """Kartu KPI minimalis dengan indikator titik merah editorial dan nilai utama besar."""
+    """Kartu KPI minimalis dengan hierarki tipografi tenang dan kotak ikon netral."""
     icon_box = ft.Container(
         width=40,
         height=40,
-        border_radius=8,
+        border_radius=10,
         bgcolor=BG_CARD_ALT,
         border=ft.border.all(1, BORDER_SUBTLE),
         alignment=ft.alignment.center,
-        content=ft.Icon(icon_name, color=ACCENT_GREEN, size=18),
+        content=ft.Icon(icon_name, color=TEXT_PRIMARY, size=18),
     )
     left_items = [
-        ft.Row(
-            [
-                ft.Container(width=5, height=5, border_radius=3, bgcolor=ACCENT_GREEN),
-                ft.Text(label, size=11, weight=ft.FontWeight.W_700, color=TEXT_MUTED),
-            ],
-            spacing=6,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
-        ft.Text(str(value_str), size=26, weight=ft.FontWeight.W_900, color=TEXT_PRIMARY),
+        ft.Text(label, size=11, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
+        ft.Text(str(value_str), size=24, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
     ]
     if sub_label:
         left_items.append(ft.Text(sub_label, size=11, color=TEXT_MUTED))
@@ -66,17 +59,17 @@ def kpi_glow_card(label: str, value_str: str, icon_name: str, glow_color: str = 
 def top_bar(title: str, subtitle: str, right_controls: list = None) -> ft.Row:
     """Header atas pada area konten utama Dashboard dengan indikator '● Data langsung'."""
     live_pill = ft.Container(
-        bgcolor=BG_CARD_ALT,
+        bgcolor=BG_CARD,
         border=ft.border.all(1, BORDER_SUBTLE),
         border_radius=20,
         padding=ft.padding.symmetric(horizontal=12, vertical=6),
-        content=ft.Text("● Data langsung", size=11, weight=ft.FontWeight.W_700, color=ACCENT_GREEN),
+        content=ft.Text("● Data langsung", size=11, weight=ft.FontWeight.W_600, color="#10B981"),
     )
     actions = [
         ft.Container(
             width=36,
             height=36,
-            border_radius=18,
+            border_radius=8,
             bgcolor=BG_CARD,
             border=ft.border.all(1, BORDER_SUBTLE),
             alignment=ft.alignment.center,
@@ -91,7 +84,7 @@ def top_bar(title: str, subtitle: str, right_controls: list = None) -> ft.Row:
         [
             ft.Column(
                 [
-                    ft.Text(title, size=28, weight=ft.FontWeight.W_900, color=TEXT_PRIMARY),
+                    ft.Text(title, size=26, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
                     ft.Text(subtitle, size=13, color=TEXT_MUTED),
                 ],
                 spacing=2,
@@ -105,14 +98,14 @@ def top_bar(title: str, subtitle: str, right_controls: list = None) -> ft.Row:
 
 
 def activity_trend_card(extra_bottom: ft.Control = None, col=None) -> ft.Container:
-    """Kartu tren aktivitas bulanan bergaya editorial dengan bar monokrom & aksen coral-red."""
+    """Kartu tren aktivitas bulanan minimalis dengan gradasi warna netral slate."""
     points = [
-        ("JAN", 0.28, "#71717A"),
-        ("MAR", 0.42, "#52525B"),
-        ("MEI", 0.88, ACCENT_GREEN),
-        ("JUL", 0.56, "#3F3F46"),
-        ("SEP", 0.48, "#71717A"),
-        ("NOV", 0.64, ACCENT_GREEN),
+        ("JAN", 0.28, "#94A3B8"),
+        ("MAR", 0.42, "#64748B"),
+        ("MEI", 0.88, ft.colors.PRIMARY),
+        ("JUL", 0.56, "#64748B"),
+        ("SEP", 0.48, "#94A3B8"),
+        ("NOV", 0.64, ft.colors.PRIMARY),
     ]
     bars = []
     for month, ratio, color in points:
@@ -123,10 +116,10 @@ def activity_trend_card(extra_bottom: ft.Control = None, col=None) -> ft.Contain
                     ft.Container(
                         width=22,
                         height=bar_h,
-                        border_radius=3,
+                        border_radius=4,
                         bgcolor=color,
                     ),
-                    ft.Text(month, size=10, weight=ft.FontWeight.BOLD, color=TEXT_MUTED),
+                    ft.Text(month, size=10, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 alignment=ft.MainAxisAlignment.END,
@@ -143,10 +136,11 @@ def activity_trend_card(extra_bottom: ft.Control = None, col=None) -> ft.Contain
     )
 
     badge = ft.Container(
-        bgcolor=ACCENT_GREEN,
-        border_radius=20,
+        bgcolor=BG_CARD_ALT,
+        border=ft.border.all(1, BORDER_SUBTLE),
+        border_radius=6,
         padding=ft.padding.symmetric(horizontal=10, vertical=4),
-        content=ft.Text("📅 ANALITIK 2026", size=10, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE),
+        content=ft.Text("📅 ANALITIK 2026", size=10, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
     )
 
     body_items = [
@@ -154,7 +148,7 @@ def activity_trend_card(extra_bottom: ft.Control = None, col=None) -> ft.Contain
             [
                 ft.Column(
                     [
-                        ft.Text("Tren Aktivitas & Progres", size=16, weight=ft.FontWeight.W_900, color=TEXT_PRIMARY),
+                        ft.Text("Tren Aktivitas & Progres", size=16, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
                         ft.Text("RINGKASAN AKTIVITAS BULANAN", size=10, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
                     ],
                     spacing=2,
@@ -172,18 +166,18 @@ def activity_trend_card(extra_bottom: ft.Control = None, col=None) -> ft.Contain
 
     return glass_card(
         col=col or {"xs": 12, "lg": 8},
-        padding=18,
+        padding=20,
         content=ft.Column(body_items, spacing=12),
     )
 
 
 def categories_donut_card(total_modules: int, col=None) -> ft.Container:
-    """Kartu distribusi kategori modul minimalis berbasis progress bar monokrom & coral-red."""
+    """Kartu distribusi kategori modul minimalis berbasis progress bar netral."""
     cats = [
-        ("Pengembangan Web", "38%", ACCENT_GREEN, 0.38),
-        ("Data & Basis Data", "25%", TEXT_PRIMARY, 0.25),
-        ("Umum", "22%", "#71717A", 0.22),
-        ("Sistem", "15%", "#A1A1AA", 0.15),
+        ("Pengembangan Web", "38%", ft.colors.PRIMARY, 0.38),
+        ("Data & Basis Data", "25%", "#64748B", 0.25),
+        ("Umum", "22%", "#94A3B8", 0.22),
+        ("Sistem", "15%", "#CBD5E1", 0.15),
     ]
     total_banner = ft.Container(
         padding=ft.padding.symmetric(vertical=10, horizontal=14),
@@ -192,8 +186,8 @@ def categories_donut_card(total_modules: int, col=None) -> ft.Container:
         border=ft.border.all(1, BORDER_SUBTLE),
         content=ft.Row(
             [
-                ft.Text("TOTAL MODUL", size=11, weight=ft.FontWeight.BOLD, color=TEXT_MUTED),
-                ft.Text(str(total_modules), size=22, weight=ft.FontWeight.W_900, color=TEXT_PRIMARY),
+                ft.Text("TOTAL MODUL", size=11, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
+                ft.Text(str(total_modules), size=22, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
             ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -207,19 +201,19 @@ def categories_donut_card(total_modules: int, col=None) -> ft.Container:
                 padding=ft.padding.symmetric(vertical=7, horizontal=10),
                 bgcolor=BG_CARD_ALT,
                 border=ft.border.all(1, BORDER_SUBTLE),
-                border_radius=6,
+                border_radius=8,
                 content=ft.Column(
                     [
                         ft.Row(
                             [
                                 ft.Row(
                                     [
-                                        ft.Container(width=6, height=6, border_radius=3, bgcolor=color),
+                                        ft.Container(width=7, height=7, border_radius=4, bgcolor=color),
                                         ft.Text(label, size=12, color=TEXT_MUTED),
                                     ],
                                     spacing=8,
                                 ),
-                                ft.Text(pct_str, size=12, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                                ft.Text(pct_str, size=12, weight=ft.FontWeight.W_600, color=TEXT_PRIMARY),
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
@@ -232,13 +226,13 @@ def categories_donut_card(total_modules: int, col=None) -> ft.Container:
 
     return glass_card(
         col=col or {"xs": 12, "lg": 4},
-        padding=18,
+        padding=20,
         content=ft.Column(
             [
                 ft.Row(
                     [
-                        ft.Text("Kategori Modul", size=16, weight=ft.FontWeight.W_900, color=TEXT_PRIMARY),
-                        ft.Icon(ft.icons.GRID_VIEW_ROUNDED, size=16, color=ACCENT_GREEN),
+                        ft.Text("Kategori Modul", size=16, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
+                        ft.Icon(ft.icons.GRID_VIEW_ROUNDED, size=16, color=TEXT_MUTED),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
@@ -263,14 +257,14 @@ def user_avatar_badge(username: str, avatar_str: str = "", size: int = 38, on_cl
             inner = ft.Image(src_base64=clean, width=size, height=size, fit=ft.ImageFit.COVER, border_radius=size // 2)
     else:
         initial = (username or "U")[0].upper()
-        inner = ft.Text(initial, size=max(11, int(size * 0.38)), weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)
+        inner = ft.Text(initial, size=max(11, int(size * 0.38)), weight=ft.FontWeight.W_600, color=TEXT_PRIMARY)
 
     return ft.Container(
         width=size,
         height=size,
         border_radius=size // 2,
         bgcolor=BG_CARD_ALT,
-        border=ft.border.all(1.5, ACCENT_GREEN if clean else BORDER_SUBTLE),
+        border=ft.border.all(1, BORDER_SUBTLE),
         alignment=ft.alignment.center,
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
         on_click=on_click,
@@ -303,14 +297,14 @@ def sidebar_shell(brand_title: str, nav_buttons: list, user: dict, profile_actio
                     width=36,
                     height=36,
                     border_radius=8,
-                    bgcolor=ACCENT_GREEN,
+                    bgcolor=ft.colors.PRIMARY,
                     alignment=ft.alignment.center,
-                    content=ft.Icon(ft.icons.CODE_ROUNDED, color=ft.colors.WHITE, size=18),
+                    content=ft.Icon(ft.icons.CODE_ROUNDED, color=ft.colors.ON_PRIMARY, size=18),
                 ),
                 ft.Column(
                     [
-                        ft.Text(brand_title, size=15, weight=ft.FontWeight.W_900, color=TEXT_PRIMARY),
-                        ft.Text("UG-Stack", size=11, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
+                        ft.Text(brand_title, size=15, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
+                        ft.Text("UG-Stack", size=11, weight=ft.FontWeight.W_500, color=TEXT_MUTED),
                     ],
                     spacing=0,
                 ),
@@ -332,7 +326,7 @@ def sidebar_shell(brand_title: str, nav_buttons: list, user: dict, profile_actio
     profile_card = ft.Container(
         bgcolor=BG_CARD_ALT,
         border=ft.border.all(1, BORDER_SUBTLE),
-        border_radius=8,
+        border_radius=10,
         padding=12,
         content=ft.Column(
             [
@@ -346,10 +340,10 @@ def sidebar_shell(brand_title: str, nav_buttons: list, user: dict, profile_actio
                         ),
                         ft.Column(
                             [
-                                ft.Text(display_name, size=13, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
-                                ft.Text(role_sub, size=10, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
+                                ft.Text(display_name, size=13, weight=ft.FontWeight.W_600, color=TEXT_PRIMARY),
+                                ft.Text(role_sub, size=10, weight=ft.FontWeight.W_500, color=TEXT_MUTED),
                             ],
-                            spacing=0,
+                            spacing=1,
                             expand=True,
                         ),
                     ],
@@ -366,12 +360,12 @@ def sidebar_shell(brand_title: str, nav_buttons: list, user: dict, profile_actio
         col=col or {"xs": 12, "md": 3, "lg": 3},
         bgcolor=BG_SIDEBAR,
         padding=16,
-        border_radius=10,
+        border_radius=12,
         border=ft.border.all(1, BORDER_SUBTLE),
         content=ft.Column(
             [
                 brand,
-                ft.Column(nav_buttons, spacing=6),
+                ft.Column(nav_buttons, spacing=4),
                 ft.Divider(height=12, color=BORDER_SUBTLE),
                 profile_card,
             ],
@@ -381,16 +375,16 @@ def sidebar_shell(brand_title: str, nav_buttons: list, user: dict, profile_actio
 
 
 def sidebar_nav_btn(label: str, active: bool, on_click) -> ft.ElevatedButton:
-    """Tombol navigasi sidebar minimalis dengan aksen coral-red saat aktif."""
+    """Tombol navigasi sidebar bersih bergaya SaaS profesional."""
     return ft.ElevatedButton(
         text=label,
-        bgcolor=ACCENT_GREEN if active else BG_CARD,
-        color=ft.colors.WHITE if active else TEXT_PRIMARY,
+        bgcolor=ft.colors.PRIMARY if active else BG_SIDEBAR,
+        color=ft.colors.ON_PRIMARY if active else TEXT_MUTED,
         width=280,
         style=ft.ButtonStyle(
-            padding=ft.padding.symmetric(horizontal=14, vertical=12),
+            padding=ft.padding.symmetric(horizontal=14, vertical=11),
             shape=ft.RoundedRectangleBorder(radius=8),
-            side=ft.BorderSide(1, ACCENT_GREEN if active else BORDER_SUBTLE),
+            side=ft.BorderSide(1, ft.colors.PRIMARY if active else ft.colors.TRANSPARENT),
             elevation=0,
         ),
         on_click=on_click,

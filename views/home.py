@@ -7,6 +7,7 @@ from components.live import community_feed, r_doc, r_so, source_panel
 from components.ui import (
     ACCENT,
     GREEN,
+    LINK_COLOR,
     card,
     chip,
     code_block,
@@ -15,6 +16,7 @@ from components.ui import (
     green_button,
     lang_logo,
     page_banner,
+    page_pad,
     pad,
     section_heading,
 )
@@ -53,6 +55,8 @@ def create_hero_section(
     on_primary_click=None,
     primary_label="Create Free Account",
     progress_text=None,
+    page=None,
+    mobile: bool = False,
 ):
     search_tf = ft.TextField(
         hint_text="Search e.g. Python, HTML, SQL...",
@@ -62,7 +66,7 @@ def create_hero_section(
         color=ft.colors.ON_SURFACE,
         suffix=ft.IconButton(
             ft.icons.SEARCH,
-            icon_color=ACCENT,
+            icon_color=ft.colors.ON_SURFACE,
             icon_size=20,
             tooltip="Cari",
             on_click=lambda e: on_search(search_tf.value) if on_search else None,
@@ -76,19 +80,19 @@ def create_hero_section(
         padding=ft.padding.symmetric(vertical=8),
         content=ft.Column(
             [
-                ft.Text("Learn to Code", size=38, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                ft.Text("Learn to Code", size=38 if not mobile else 30, weight=ft.FontWeight.W_700, color=ft.colors.ON_SURFACE),
                 ft.Text(
                     "With Gunadarma's largest web developer learning platform.",
                     size=15,
                     color=ft.colors.ON_SURFACE_VARIANT,
-                    weight=ft.FontWeight.W_500,
+                    weight=ft.FontWeight.W_400,
                 ),
                 ft.Container(height=6),
                 search_tf,
                 ft.TextButton(
                     content=ft.Text(
                         "Not Sure Where To Begin?",
-                        color=ACCENT,
+                        color=LINK_COLOR,
                         size=13,
                         weight=ft.FontWeight.W_600,
                         style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE),
@@ -101,21 +105,22 @@ def create_hero_section(
     )
 
     badge = ft.Container(
-        content=ft.Text("PRO FEATURES", size=10, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE),
-        bgcolor=ACCENT,
+        content=ft.Text("PRO FEATURES", size=10, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE_VARIANT),
+        bgcolor=ft.colors.SURFACE,
+        border=ft.border.all(1, ft.colors.OUTLINE),
         padding=ft.padding.symmetric(horizontal=10, vertical=4),
         border_radius=6,
     )
     top_row = [badge]
     if progress_text:
-        top_row.append(ft.Text(progress_text, color=ACCENT, weight=ft.FontWeight.BOLD, size=12))
+        top_row.append(ft.Text(progress_text, color=ft.colors.ON_SURFACE, weight=ft.FontWeight.W_600, size=12))
 
     feature = lambda idx_str, t: ft.Container(
         padding=ft.padding.symmetric(vertical=7),
         border=ft.border.only(bottom=ft.BorderSide(1, ft.colors.OUTLINE)),
         content=ft.Row(
             [
-                ft.Text(idx_str, size=11, weight=ft.FontWeight.BOLD, color=ACCENT, font_family="monospace"),
+                ft.Text(idx_str, size=11, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE_VARIANT, font_family="monospace"),
                 ft.Text(t, color=ft.colors.ON_SURFACE, size=13, expand=True),
             ],
             spacing=10,
@@ -126,22 +131,22 @@ def create_hero_section(
     pro_card = ft.Container(
         bgcolor=ft.colors.SURFACE_VARIANT,
         padding=24,
-        border_radius=10,
+        border_radius=12,
         border=ft.border.all(1, ft.colors.OUTLINE),
         col={"xs": 12, "md": 6},
         content=ft.Column(
             [
                 ft.Row(top_row, alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
-                ft.Text("Upgrade Your Learning Experience", size=20, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                ft.Text("Upgrade Your Learning Experience", size=19, weight=ft.FontWeight.W_700, color=ft.colors.ON_SURFACE),
                 feature("01", "Progress tracking & analytics"),
                 feature("02", "Ad-free learning environment"),
                 feature("03", "Interactive quizzes & practice"),
                 feature("04", "Official UG-Stack Certificates"),
-                ft.Container(height=4),
+                ft.Container(height=6),
                 ft.ElevatedButton(
                     primary_label,
-                    bgcolor=ACCENT,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.colors.PRIMARY,
+                    color=ft.colors.ON_PRIMARY,
                     style=ft.ButtonStyle(
                         shape=ft.RoundedRectangleBorder(radius=8),
                         padding=ft.padding.symmetric(horizontal=22, vertical=12),
@@ -157,29 +162,29 @@ def create_hero_section(
     return ft.Container(
         bgcolor=ft.colors.SURFACE,
         border=ft.border.only(bottom=ft.BorderSide(1, ft.colors.OUTLINE)),
-        padding=ft.padding.symmetric(vertical=36, horizontal=32),
+        padding=page_pad(page, mobile, vertical=44),
         content=ft.ResponsiveRow(
             [left_content, pro_card],
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=24,
-            run_spacing=20,
+            spacing=28,
+            run_spacing=24,
         ),
     )
 
 
-def create_app_banner(on_tryit_click=None, on_pwa_install=None):
+def create_app_banner(on_tryit_click=None, on_pwa_install=None, page=None, mobile: bool = False):
     return ft.Container(
-        padding=ft.padding.symmetric(vertical=24, horizontal=32),
+        padding=page_pad(page, mobile, vertical=24),
         content=ft.Container(
             bgcolor=ft.colors.SURFACE,
             padding=28,
-            border_radius=10,
+            border_radius=12,
             border=ft.border.all(1, ft.colors.OUTLINE),
             content=ft.ResponsiveRow(
                 [
                     ft.Column(
                         [
-                            ft.Text("UG-Stack Adventure App", size=24, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                            ft.Text("UG-Stack Adventure App", size=22, weight=ft.FontWeight.W_700, color=ft.colors.ON_SURFACE),
                             ft.Text(
                                 "Learn to code by playing a game! Available on mobile and desktop devices.",
                                 size=14,
@@ -190,16 +195,21 @@ def create_app_banner(on_tryit_click=None, on_pwa_install=None):
                                 [
                                     ft.ElevatedButton(
                                         content=ft.Row([ft.Icon(ft.icons.PHONE_IPHONE, size=18), ft.Text("App Store")], spacing=6, tight=True),
-                                        bgcolor=ACCENT,
-                                        color=ft.colors.WHITE,
+                                        bgcolor=ft.colors.PRIMARY,
+                                        color=ft.colors.ON_PRIMARY,
                                         style=_APP_BTN_STYLE,
                                         on_click=lambda e: on_pwa_install("iOS") if on_pwa_install else None,
                                     ),
                                     ft.ElevatedButton(
                                         content=ft.Row([ft.Icon(ft.icons.ANDROID, size=18), ft.Text("Google Play")], spacing=6, tight=True),
-                                        bgcolor="#18181B",
-                                        color=ft.colors.WHITE,
-                                        style=_APP_BTN_STYLE,
+                                        bgcolor=ft.colors.SURFACE_VARIANT,
+                                        color=ft.colors.ON_SURFACE,
+                                        style=ft.ButtonStyle(
+                                            shape=ft.RoundedRectangleBorder(radius=8),
+                                            side=ft.BorderSide(1, ft.colors.OUTLINE),
+                                            padding=ft.padding.symmetric(horizontal=18, vertical=10),
+                                            elevation=0,
+                                        ),
                                         on_click=lambda e: on_pwa_install("Android") if on_pwa_install else None,
                                     ),
                                     ft.OutlinedButton(
@@ -219,12 +229,12 @@ def create_app_banner(on_tryit_click=None, on_pwa_install=None):
                     ft.Column(
                         [
                             ft.Container(
-                                width=72,
-                                height=72,
-                                border_radius=16,
+                                width=68,
+                                height=68,
+                                border_radius=14,
                                 bgcolor=ft.colors.SURFACE_VARIANT,
                                 border=ft.border.all(1, ft.colors.OUTLINE),
-                                content=ft.Icon(ft.icons.SMARTPHONE, size=36, color=ACCENT),
+                                content=ft.Icon(ft.icons.SMARTPHONE, size=34, color=ft.colors.ON_SURFACE),
                                 alignment=ft.alignment.center,
                             )
                         ],
@@ -243,7 +253,7 @@ def create_course_card(title, desc, color_bg, on_select_course=None, idx: int = 
     return ft.Container(
         bgcolor=ft.colors.SURFACE,
         padding=20,
-        border_radius=10,
+        border_radius=12,
         border=ft.border.all(1, ft.colors.OUTLINE),
         col={"xs": 12, "sm": 6, "md": 4, "lg": 3},
         on_click=lambda e: on_select_course(title) if on_select_course else None,
@@ -259,16 +269,16 @@ def create_course_card(title, desc, color_bg, on_select_course=None, idx: int = 
                             height=44,
                             bgcolor=ft.colors.SURFACE_VARIANT,
                             border=ft.border.all(1, ft.colors.OUTLINE),
-                            border_radius=8,
+                            border_radius=10,
                             alignment=ft.alignment.center,
                             content=lang_logo(title, 26),
                         ),
-                        ft.Text(f"{idx:02d}", size=12, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE_VARIANT, font_family="monospace"),
+                        ft.Text(f"{idx:02d}", size=11, weight=ft.FontWeight.W_600, color=ft.colors.ON_SURFACE_VARIANT, font_family="monospace"),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                ft.Text(title, size=19, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                ft.Text(title, size=18, weight=ft.FontWeight.W_700, color=ft.colors.ON_SURFACE),
                 ft.Container(
                     height=38,
                     content=ft.Text(desc, color=ft.colors.ON_SURFACE_VARIANT, size=12),
@@ -290,24 +300,24 @@ def create_course_card(title, desc, color_bg, on_select_course=None, idx: int = 
     )
 
 
-def create_courses_grid(on_select_course=None, on_more_courses=None):
+def create_courses_grid(on_select_course=None, on_more_courses=None, page=None, mobile: bool = False):
     cards = [create_course_card(title, desc, bg, on_select_course, idx=i) for i, (title, desc, bg) in enumerate(COURSES, 1)]
     return ft.Container(
-        padding=ft.padding.symmetric(vertical=32, horizontal=32),
+        padding=page_pad(page, mobile, vertical=36),
         bgcolor=ft.colors.BACKGROUND,
         content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=18,
+            spacing=20,
             controls=[
-                ft.Text("Popular Courses", size=26, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
+                ft.Text("Popular Courses", size=26, weight=ft.FontWeight.W_700, color=ft.colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
                 ft.ResponsiveRow(spacing=16, run_spacing=16, controls=cards),
                 ft.Container(
                     padding=ft.padding.only(top=8),
                     alignment=ft.alignment.center,
                     content=ft.ElevatedButton(
                         "And 40+ more ❯",
-                        bgcolor=ACCENT,
-                        color=ft.colors.WHITE,
+                        bgcolor=ft.colors.PRIMARY,
+                        color=ft.colors.ON_PRIMARY,
                         style=ft.ButtonStyle(
                             shape=ft.RoundedRectangleBorder(radius=8),
                             padding=ft.padding.symmetric(horizontal=24, vertical=12),
@@ -321,18 +331,18 @@ def create_courses_grid(on_select_course=None, on_more_courses=None):
     )
 
 
-def snippet_of_the_day(page, on_open_lesson, on_tryit):
+def snippet_of_the_day(page, on_open_lesson, on_tryit, mobile: bool = False):
     items = [(k, i, l) for k, ls in LESSONS.items() for i, l in enumerate(ls)]
     key, idx, lesson = items[date.today().toordinal() % len(items)]
     lang = BY_KEY[key]
     return ft.Container(
-        padding=ft.padding.symmetric(horizontal=32, vertical=12),
+        padding=page_pad(page, mobile, vertical=14),
         content=card(
             ft.Column(
                 [
                     ft.Row(
                         [
-                            ft.Text("💡 Kode Hari Ini", size=19, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                            ft.Text("💡 Kode Hari Ini", size=19, weight=ft.FontWeight.W_700, color=ft.colors.ON_SURFACE),
                             ft.Row([chip(lang["name"]), chip(lesson["title"])], spacing=8, wrap=True),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -357,9 +367,9 @@ def snippet_of_the_day(page, on_open_lesson, on_tryit):
     )
 
 
-def live_community_section(page):
+def live_community_section(page, mobile: bool = False):
     return ft.Container(
-        padding=ft.padding.symmetric(horizontal=32, vertical=20),
+        padding=page_pad(page, mobile, vertical=24),
         content=ft.Column(
             [
                 section_heading("🔥 Sedang Ramai di Komunitas Developer"),
@@ -375,28 +385,28 @@ def live_community_section(page):
     )
 
 
-def create_save_progress_section(on_primary_click=None, primary_label="Sign Up For Free"):
+def create_save_progress_section(on_primary_click=None, primary_label="Sign Up For Free", page=None, mobile: bool = False):
     return ft.Container(
-        padding=ft.padding.symmetric(horizontal=32, vertical=16),
+        padding=page_pad(page, mobile, vertical=16),
         content=ft.Container(
             bgcolor=ft.colors.SURFACE_VARIANT,
             padding=ft.padding.symmetric(horizontal=32, vertical=32),
-            border_radius=10,
+            border_radius=12,
             border=ft.border.all(1, ft.colors.OUTLINE),
             content=ft.ResponsiveRow(
                 [
                     ft.Column(
                         [
-                            ft.Text("Save your progress. Everywhere.", size=26, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                            ft.Text("Save your progress. Everywhere.", size=24, weight=ft.FontWeight.W_700, color=ft.colors.ON_SURFACE),
                             ft.Text(
                                 "Create a free account to track your progress, score points, and log in from anywhere.",
                                 size=14,
                                 color=ft.colors.ON_SURFACE_VARIANT,
                             ),
                             ft.Container(height=6),
-                            ft.Row([ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, color=ACCENT, size=18), ft.Text("Track your progress", size=13, color=ft.colors.ON_SURFACE)], spacing=8),
-                            ft.Row([ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, color=ACCENT, size=18), ft.Text("Earn free certificates", size=13, color=ft.colors.ON_SURFACE)], spacing=8),
-                            ft.Row([ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, color=ACCENT, size=18), ft.Text("Access interactive quizzes", size=13, color=ft.colors.ON_SURFACE)], spacing=8),
+                            ft.Row([ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, color=ft.colors.ON_SURFACE, size=18), ft.Text("Track your progress", size=13, color=ft.colors.ON_SURFACE)], spacing=8),
+                            ft.Row([ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, color=ft.colors.ON_SURFACE, size=18), ft.Text("Earn free certificates", size=13, color=ft.colors.ON_SURFACE)], spacing=8),
+                            ft.Row([ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, color=ft.colors.ON_SURFACE, size=18), ft.Text("Access interactive quizzes", size=13, color=ft.colors.ON_SURFACE)], spacing=8),
                         ],
                         col={"xs": 12, "md": 6},
                         spacing=8,
@@ -406,11 +416,11 @@ def create_save_progress_section(on_primary_click=None, primary_label="Sign Up F
                             ft.Container(
                                 bgcolor=ft.colors.SURFACE,
                                 padding=24,
-                                border_radius=10,
+                                border_radius=12,
                                 border=ft.border.all(1, ft.colors.OUTLINE),
                                 content=ft.Column(
                                     [
-                                        ft.Text("Start in one click", weight=ft.FontWeight.BOLD, size=18, color=ft.colors.ON_SURFACE),
+                                        ft.Text("Start in one click", weight=ft.FontWeight.W_700, size=18, color=ft.colors.ON_SURFACE),
                                         ft.Text(
                                             "Login atau daftar untuk membuka dashboard modul dan progres belajar.",
                                             size=13,
@@ -419,8 +429,8 @@ def create_save_progress_section(on_primary_click=None, primary_label="Sign Up F
                                         ft.Container(height=4),
                                         ft.ElevatedButton(
                                             primary_label,
-                                            bgcolor=ACCENT,
-                                            color=ft.colors.WHITE,
+                                            bgcolor=ft.colors.PRIMARY,
+                                            color=ft.colors.ON_PRIMARY,
                                             style=ft.ButtonStyle(
                                                 shape=ft.RoundedRectangleBorder(radius=8),
                                                 padding=ft.padding.symmetric(horizontal=22, vertical=13),
@@ -444,7 +454,7 @@ def create_save_progress_section(on_primary_click=None, primary_label="Sign Up F
     )
 
 
-def create_career_spaces_sections(on_cert_click=None, on_spaces_click=None):
+def create_career_spaces_sections(on_cert_click=None, on_spaces_click=None, page=None, mobile: bool = False):
     btn_style = ft.ButtonStyle(
         shape=ft.RoundedRectangleBorder(radius=8),
         padding=ft.padding.symmetric(horizontal=20, vertical=12),
@@ -453,7 +463,7 @@ def create_career_spaces_sections(on_cert_click=None, on_spaces_click=None):
     career_card = ft.Container(
         bgcolor=ft.colors.SURFACE,
         padding=28,
-        border_radius=10,
+        border_radius=12,
         border=ft.border.all(1, ft.colors.OUTLINE),
         col={"xs": 12, "md": 6},
         content=ft.Column(
@@ -462,21 +472,21 @@ def create_career_spaces_sections(on_cert_click=None, on_spaces_click=None):
                     [
                         ft.Column(
                             [
-                                ft.Text("Kickstart your career", size=22, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                                ft.Text("Kickstart your career", size=20, weight=ft.FontWeight.W_700, color=ft.colors.ON_SURFACE),
                                 ft.Text("Get certified by completing a course today!", size=13, color=ft.colors.ON_SURFACE_VARIANT),
                             ],
                             spacing=4,
                             expand=True,
                         ),
-                        ft.Icon(ft.icons.VERIFIED, size=36, color=ACCENT),
+                        ft.Icon(ft.icons.VERIFIED, size=34, color=ft.colors.ON_SURFACE),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
                 ft.Container(height=10),
                 ft.ElevatedButton(
                     "Get Certified",
-                    bgcolor=ACCENT,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.colors.PRIMARY,
+                    color=ft.colors.ON_PRIMARY,
                     style=btn_style,
                     on_click=lambda e: on_cert_click() if on_cert_click else None,
                 ),
@@ -488,7 +498,7 @@ def create_career_spaces_sections(on_cert_click=None, on_spaces_click=None):
     spaces_card = ft.Container(
         bgcolor=ft.colors.SURFACE,
         padding=28,
-        border_radius=10,
+        border_radius=12,
         border=ft.border.all(1, ft.colors.OUTLINE),
         col={"xs": 12, "md": 6},
         content=ft.Column(
@@ -497,21 +507,21 @@ def create_career_spaces_sections(on_cert_click=None, on_spaces_click=None):
                     [
                         ft.Column(
                             [
-                                ft.Text("Build and host websites", size=22, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE),
+                                ft.Text("Build and host websites", size=20, weight=ft.FontWeight.W_700, color=ft.colors.ON_SURFACE),
                                 ft.Text("Create your own website with UG-Stack Spaces.", size=13, color=ft.colors.ON_SURFACE_VARIANT),
                             ],
                             spacing=4,
                             expand=True,
                         ),
-                        ft.Icon(ft.icons.TERMINAL, size=36, color=ACCENT),
+                        ft.Icon(ft.icons.TERMINAL, size=34, color=ft.colors.ON_SURFACE),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
                 ft.Container(height=10),
                 ft.ElevatedButton(
                     "Try Spaces",
-                    bgcolor=ACCENT,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.colors.PRIMARY,
+                    color=ft.colors.ON_PRIMARY,
                     style=btn_style,
                     on_click=lambda e: on_spaces_click() if on_spaces_click else None,
                 ),
@@ -521,7 +531,7 @@ def create_career_spaces_sections(on_cert_click=None, on_spaces_click=None):
     )
 
     return ft.Container(
-        padding=ft.padding.symmetric(horizontal=32, vertical=12),
+        padding=page_pad(page, mobile, vertical=16),
         content=ft.ResponsiveRow([career_card, spaces_card], spacing=16, run_spacing=16),
     )
 
@@ -543,6 +553,7 @@ def get_home_view(
     on_open_lesson=None,
 ):
     ui_lang = getattr(page, "_ug_lang", "id")
+    mobile = (getattr(page, "width", None) or 1024) < 768
     label = "Buka Dasbor" if user else "Buat Akun Gratis"
     return ft.Column(
         controls=[
@@ -552,18 +563,22 @@ def get_home_view(
                 on_primary_click=on_primary_click,
                 primary_label=label,
                 progress_text=progress_text,
+                page=page,
+                mobile=mobile,
             ),
-            create_app_banner(on_tryit_click=on_tryit_click, on_pwa_install=on_pwa_install),
-            create_editor_section(on_tryit_click=on_tryit_click, ui_lang=ui_lang),
-            create_courses_grid(on_select_course=on_select_course, on_more_courses=on_more_courses),
-            snippet_of_the_day(page, on_open_lesson, on_tryit_click),
-            live_community_section(page),
+            create_app_banner(on_tryit_click=on_tryit_click, on_pwa_install=on_pwa_install, page=page, mobile=mobile),
+            create_editor_section(on_tryit_click=on_tryit_click, ui_lang=ui_lang, page=page, mobile=mobile),
+            create_courses_grid(on_select_course=on_select_course, on_more_courses=on_more_courses, page=page, mobile=mobile),
+            snippet_of_the_day(page, on_open_lesson, on_tryit_click, mobile=mobile),
+            live_community_section(page, mobile=mobile),
             create_save_progress_section(
                 on_primary_click=on_primary_click,
                 primary_label="Buka Dasbor" if user else "Daftar Gratis",
+                page=page,
+                mobile=mobile,
             ),
-            create_career_spaces_sections(on_cert_click=on_cert_click, on_spaces_click=on_spaces_click),
-            create_footer(on_footer_link=on_footer_link),
+            create_career_spaces_sections(on_cert_click=on_cert_click, on_spaces_click=on_spaces_click, page=page, mobile=mobile),
+            create_footer(on_footer_link=on_footer_link, page=page, mobile=mobile),
         ],
         spacing=0,
         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -632,7 +647,7 @@ def get_tutorials_view(page: ft.Page, mobile: bool, on_open_lang, on_roadmap):
         [
             page_banner("Tutorial UG-Stack", "Pilih bahasa, belajar bertahap, lalu uji dengan quiz.", mobile),
             ft.Container(
-                padding=pad(mobile),
+                padding=page_pad(page, mobile),
                 content=ft.Column(
                     [
                         ft.Row(
@@ -704,7 +719,7 @@ def get_roadmap_view(page: ft.Page, mobile: bool, on_open_lang):
     return ft.Column(
         [
             page_banner("Alur Belajar Pemrograman", "Tidak yakin harus mulai dari mana? Pilih jalur yang sesuai tujuan Anda.", mobile),
-            ft.Container(padding=pad(mobile), content=ft.ResponsiveRow(tracks, spacing=16, run_spacing=16)),
+            ft.Container(padding=page_pad(page, mobile), content=ft.ResponsiveRow(tracks, spacing=16, run_spacing=16)),
         ],
         spacing=0,
         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -818,7 +833,7 @@ def get_search_view(page: ft.Page, query: str, mobile: bool, on_search, on_open_
     return ft.Column(
         [
             page_banner("Pencarian", "Cari di materi UG-Stack dan sumber tepercaya di web.", mobile),
-            ft.Container(padding=pad(mobile), content=ft.Column(controls, spacing=12)),
+            ft.Container(padding=page_pad(page, mobile), content=ft.Column(controls, spacing=12)),
         ],
         spacing=0,
         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -831,7 +846,7 @@ def get_info_view(page: ft.Page, key: str, mobile: bool, on_home):
         [
             page_banner(info["title"], "", mobile),
             ft.Container(
-                padding=pad(mobile),
+                padding=page_pad(page, mobile),
                 content=ft.Column(
                     [
                         *[

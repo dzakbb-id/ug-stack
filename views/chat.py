@@ -2,7 +2,7 @@
 import flet as ft
 from components.dashboard_theme import user_avatar_badge
 from components.i18n_ui import translate_tree
-from components.ui import GREEN, card, chip, green_button, pad, page_banner, section_heading
+from components.ui import GREEN, card, chip, green_button, pad, page_banner, page_pad, section_heading
 from services import auth, chat, roles
 from views.auth_view import open_forgot_password
 
@@ -227,7 +227,7 @@ def create_chat_view(page: ft.Page, go=None, mobile: bool = False, user=None, *a
                 mobile,
             ),
             ft.Container(
-                padding=pad(mobile),
+                padding=page_pad(page, mobile, vertical=28, max_width=960),
                 content=ft.Column(
                     [
                         cs_header_card,

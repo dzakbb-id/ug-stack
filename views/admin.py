@@ -16,7 +16,7 @@ from components.dashboard_theme import (
     top_bar,
     user_avatar_badge,
 )
-from components.ui import GREEN, card, chip, dark_button, green_button, page_banner, pad, section_heading
+from components.ui import GREEN, card, chip, dark_button, green_button, page_banner, pad, page_pad, section_heading
 from content.languages import LANGS
 from services import audit, auth, backup, csv_io, quiz_admin, reports, settings
 from services.roles import ROLES, is_admin
@@ -74,7 +74,7 @@ def get_admin_view(page: ft.Page, user: dict, tab: str, mobile: bool, on_tab, on
     )
     return ft.Container(
         bgcolor=BG_MAIN,
-        padding=pad(mobile),
+        padding=page_pad(page, mobile, vertical=24, max_width=1240),
         content=ft.ResponsiveRow([sidebar, main_panel], spacing=20, run_spacing=18),
     )
 
@@ -99,7 +99,7 @@ def _dark_outlined_btn(text: str, on_click, disabled: bool = False) -> ft.Outlin
 def _dialog(page, title, content, actions):
     page.dialog = ft.AlertDialog(
         modal=True,
-        shape=ft.RoundedRectangleBorder(radius=16),
+        shape=ft.RoundedRectangleBorder(radius=12),
         title=ft.Text(title, weight=ft.FontWeight.BOLD),
         content=content,
         actions=actions,
@@ -320,7 +320,7 @@ def _tab_users(page, user, mobile, refresh):
             ft.Text("Semua akun mahasiswa dan dosen beserta progres, skor, dan sesinya akan dihapus permanen. Akun admin tetap aman."),
             [
                 ft.TextButton("Batal", on_click=lambda e2: _close(page)),
-                ft.ElevatedButton("Hapus", bgcolor="#E53935", color=ft.colors.WHITE, on_click=go),
+                ft.ElevatedButton("Hapus", bgcolor=ft.colors.ERROR, color=ft.colors.WHITE, on_click=go),
             ],
         )
 
@@ -381,7 +381,7 @@ def _tab_users(page, user, mobile, refresh):
         def reset(e, name=name):
             tf = ft.TextField(label="Password sementara (kosongkan = acak)", password=True, can_reveal_password=True,
                               color=ft.colors.ON_SURFACE)
-            err = ft.Text("", color=ft.colors.RED_700, size=13)
+            err = ft.Text("", color=ft.colors.ERROR, size=13)
 
             def go(e2):
                 temp = tf.value.strip() or auth.generate_password()
@@ -418,8 +418,8 @@ def _tab_users(page, user, mobile, refresh):
                 user_avatar_badge(u.get("full_name") or name, u.get("avatar", ""), size=34),
                 ft.Text(disp_user, size=16, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
                 chip(u["role"].upper()),
-                *([chip(u["npm"], "#E5E7EB")] if u.get("npm") else []),
-                *([chip("wajib ganti password", "#FFE0B2")] if u["must_change"] else []),
+                *([chip(u["npm"])] if u.get("npm") else []),
+                *([chip("wajib ganti password")] if u["must_change"] else []),
                 ft.Text(f"sejak {u['created_at']}", size=12, color=TEXT_MUTED),
             ], wrap=True, spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
             ft.Row([
@@ -475,7 +475,7 @@ def _tab_users(page, user, mobile, refresh):
                 ],
             )
 
-        status_chip = chip("SELESAI", "#D1FAE5") if is_done else chip("MENUNGGU", "#FEF3C7")
+        status_chip = chip("SELESAI") if is_done else chip("MENUNGGU")
         reset_cards.append(
             glass_card(
                 ft.Column(

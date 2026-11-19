@@ -14,7 +14,7 @@ from components.dashboard_theme import (
     top_bar,
     user_avatar_badge,
 )
-from components.ui import lang_logo
+from components.ui import lang_logo, page_pad
 from content.languages import find_lang
 from services import auth, modules as svc, progress, reports
 from services.roles import can_manage_content, is_admin
@@ -228,7 +228,7 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
                               keyboard_type=ft.KeyboardType.NUMBER, color=ft.colors.ON_SURFACE)
         deskripsi = ft.TextField(label="Deskripsi (opsional)", value=m["deskripsi"] if m else "",
                                  multiline=True, min_lines=2, max_lines=4, color=ft.colors.ON_SURFACE)
-        error = ft.Text("", color=ft.colors.RED_700, size=13)
+        error = ft.Text("", color=ft.colors.ERROR, size=13)
 
         def save(e):
             data = {"judul": judul.value, "bahasa": bahasa.value, "level": level.value,
@@ -300,8 +300,7 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
     toolbar = ft.ResponsiveRow([search, bahasa_dd, sort_dd, ft.Container(order_btn, col={"xs": 12, "md": 2})],
                                vertical_alignment=ft.CrossAxisAlignment.CENTER)
 
-    # ---------------------------------------------------------------- tata letak bergaya ModyLearn
-    pad = 16 if mobile else 28
+    # ---------------------------------------------------------------- tata letak
     nav_buttons = [
         sidebar_nav_btn("📚 Daftar Modul", True, lambda e: refresh()),
         sidebar_nav_btn("📝 Quiz & sertifikat", False, lambda e: on_nav("exercises") if on_nav else None),
@@ -391,6 +390,6 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
     )
     return ft.Container(
         bgcolor=BG_MAIN,
-        padding=pad,
+        padding=page_pad(page, mobile, vertical=24, max_width=1240),
         content=ft.ResponsiveRow([sidebar, main_panel], spacing=20, run_spacing=18),
     )

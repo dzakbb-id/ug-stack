@@ -45,9 +45,11 @@ def get_samples(ui_lang: str = "id") -> dict:
     return SAMPLES_EN if ui_lang == "en" else SAMPLES_ID
 
 
-def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
+def create_editor_section(on_tryit_click=None, ui_lang: str = "id", page=None, mobile: bool = False):
+    from components.ui import page_pad
+
     samples = get_samples(ui_lang)
-    code_text = ft.Text(samples["HTML"], font_family="monospace", color="#FAFAFA", size=13, selectable=True)
+    code_text = ft.Text(samples["HTML"], font_family="monospace", color="#E4E4E7", size=13, selectable=True)
     active_lang = {"value": "HTML"}
 
     def change_tab(lang):
@@ -55,11 +57,11 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
         code_text.value = samples[lang]
         for btn in tab_buttons.controls:
             if btn.text == lang:
-                btn.bgcolor = "#EF4444"
-                btn.color = ft.colors.WHITE
+                btn.bgcolor = ft.colors.PRIMARY
+                btn.color = ft.colors.ON_PRIMARY
             else:
                 btn.bgcolor = ft.colors.SURFACE
-                btn.color = ft.colors.ON_SURFACE
+                btn.color = ft.colors.ON_SURFACE_VARIANT
         try:
             code_text.update()
             tab_buttons.update()
@@ -80,8 +82,8 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
             ft.ElevatedButton(
                 lang,
                 on_click=lambda e, l=lang: change_tab(l),
-                bgcolor="#EF4444" if i == 0 else ft.colors.SURFACE,
-                color=ft.colors.WHITE if i == 0 else ft.colors.ON_SURFACE,
+                bgcolor=ft.colors.PRIMARY if i == 0 else ft.colors.SURFACE,
+                color=ft.colors.ON_PRIMARY if i == 0 else ft.colors.ON_SURFACE_VARIANT,
                 style=_TAB_STYLE,
             )
             for i, lang in enumerate(HOME_TABS)
@@ -94,15 +96,15 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
     return ft.Container(
         bgcolor=ft.colors.SURFACE_VARIANT,
         border=ft.border.only(top=ft.BorderSide(1, ft.colors.OUTLINE), bottom=ft.BorderSide(1, ft.colors.OUTLINE)),
-        padding=ft.padding.symmetric(vertical=36, horizontal=32),
+        padding=page_pad(page, mobile, vertical=40),
         content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-            spacing=12,
+            spacing=14,
             controls=[
                 ft.Text(
                     "Apa yang ingin Anda pelajari?",
                     size=26,
-                    weight=ft.FontWeight.BOLD,
+                    weight=ft.FontWeight.W_700,
                     color=ft.colors.ON_SURFACE,
                     text_align=ft.TextAlign.CENTER,
                 ),
@@ -115,33 +117,33 @@ def create_editor_section(on_tryit_click=None, ui_lang: str = "id"):
                 tab_buttons,
                 ft.Container(
                     bgcolor=ft.colors.SURFACE,
-                    border_radius=10,
+                    border_radius=12,
                     border=ft.border.all(1, ft.colors.OUTLINE),
-                    padding=22,
+                    padding=24,
                     content=ft.Column(
                         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                        spacing=12,
+                        spacing=14,
                         controls=[
                             ft.Row(
                                 [
-                                    ft.Text("Contoh Kode:", weight=ft.FontWeight.BOLD, size=15, color=ft.colors.ON_SURFACE),
-                                    ft.Icon(ft.icons.CODE, size=18, color="#EF4444"),
+                                    ft.Text("Contoh Kode:", weight=ft.FontWeight.W_600, size=15, color=ft.colors.ON_SURFACE),
+                                    ft.Icon(ft.icons.CODE, size=18, color=ft.colors.ON_SURFACE_VARIANT),
                                 ],
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             ),
                             ft.Container(
-                                bgcolor="#111114",
+                                bgcolor="#0F1117",
                                 border=ft.border.all(1, "#27272A"),
-                                padding=16,
-                                border_radius=8,
+                                padding=18,
+                                border_radius=10,
                                 content=ft.Column([code_text], spacing=0),
                             ),
                             ft.Row(
                                 [
                                     ft.ElevatedButton(
                                         "Coba Sendiri ❯",
-                                        bgcolor="#EF4444",
-                                        color=ft.colors.WHITE,
+                                        bgcolor=ft.colors.PRIMARY,
+                                        color=ft.colors.ON_PRIMARY,
                                         style=ft.ButtonStyle(
                                             shape=ft.RoundedRectangleBorder(radius=8),
                                             padding=ft.padding.symmetric(horizontal=22, vertical=12),

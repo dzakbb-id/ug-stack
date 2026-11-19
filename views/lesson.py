@@ -14,6 +14,7 @@ from components.ui import (
     lang_logo,
     link_text,
     page_banner,
+    page_pad,
     pad,
     section_heading,
 )
@@ -34,7 +35,7 @@ def get_lesson_view(page: ft.Page, lang: dict, idx: int, mobile: bool, on_lesson
     hero = ft.Container(
         bgcolor=ft.colors.SURFACE,
         border=ft.border.only(bottom=ft.BorderSide(1, ft.colors.OUTLINE)),
-        padding=ft.padding.symmetric(vertical=24, horizontal=pad(mobile)),
+        padding=page_pad(page, mobile, vertical=26),
         content=ft.Row([
             ft.Container(
                 lang_logo(lang["key"], 34),
@@ -106,7 +107,7 @@ def get_lesson_view(page: ft.Page, lang: dict, idx: int, mobile: bool, on_lesson
 
     return ft.Column([
         hero,
-        ft.Container(padding=pad(mobile), content=ft.Column([
+        ft.Container(padding=page_pad(page, mobile), content=ft.Column([
             ft.ResponsiveRow([sidebar, main], spacing=20, run_spacing=14),
             docs,
             ft.Divider(height=30, color=ft.colors.OUTLINE),
@@ -227,7 +228,7 @@ def get_references_view(page: ft.Page, lang: dict, mobile: bool, on_lang):
         [
             page_banner("Referensi", "Ringkasan sintaks dan pencarian dokumentasi.", mobile),
             ft.Container(
-                padding=pad(mobile),
+                padding=page_pad(page, mobile),
                 content=ft.Column(
                     [
                         chips,

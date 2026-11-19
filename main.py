@@ -40,50 +40,52 @@ NAV_OF = {
 def main(page: ft.Page):
     page.title = "UG-Stack - Belajar Coding"
     page.theme = ft.Theme(
+        visual_density=ft.ThemeVisualDensity.COMFORTABLE,
         color_scheme=ft.ColorScheme(
-            primary="#EF4444",
+            primary="#18181B",
             on_primary="#FFFFFF",
-            primary_container="#EAEAE8",
-            on_primary_container="#0A0A0A",
-            secondary="#111113",
+            primary_container="#F4F4F5",
+            on_primary_container="#0F172A",
+            secondary="#2563EB",
             on_secondary="#FFFFFF",
-            secondary_container="#E4E4E7",
-            on_secondary_container="#0A0A0A",
-            background="#F4F4F5",
-            on_background="#0A0A0A",
+            secondary_container="#EFF6FF",
+            on_secondary_container="#1E40AF",
+            background="#FAFAFA",
+            on_background="#0F172A",
             surface="#FFFFFF",
-            on_surface="#0A0A0A",
-            surface_variant="#EAEAE8",
-            on_surface_variant="#52525B",
-            outline="#D4D4D8",
-            outline_variant="#E4E4E7",
+            on_surface="#0F172A",
+            surface_variant="#F4F4F5",
+            on_surface_variant="#64748B",
+            outline="#E4E4E7",
+            outline_variant="#F1F5F9",
             error="#DC2626",
             on_error="#FFFFFF",
             surface_tint="#FFFFFF",
-        )
+        ),
     )
     page.dark_theme = ft.Theme(
+        visual_density=ft.ThemeVisualDensity.COMFORTABLE,
         color_scheme=ft.ColorScheme(
-            primary="#EF4444",
-            on_primary="#FFFFFF",
-            primary_container="#1A1A1E",
-            on_primary_container="#FAFAFA",
-            secondary="#FAFAFA",
-            on_secondary="#0B0B0D",
-            secondary_container="#27272A",
-            on_secondary_container="#FAFAFA",
-            background="#0B0B0D",
-            on_background="#FAFAFA",
-            surface="#141417",
-            on_surface="#FAFAFA",
-            surface_variant="#1C1C20",
+            primary="#FAFAFA",
+            on_primary="#09090B",
+            primary_container="#18181B",
+            on_primary_container="#F4F4F5",
+            secondary="#60A5FA",
+            on_secondary="#09090B",
+            secondary_container="#1E293B",
+            on_secondary_container="#BFDBFE",
+            background="#09090B",
+            on_background="#F4F4F5",
+            surface="#111113",
+            on_surface="#F4F4F5",
+            surface_variant="#18181B",
             on_surface_variant="#A1A1AA",
             outline="#27272A",
             outline_variant="#1C1C20",
-            error="#EF4444",
-            on_error="#FFFFFF",
-            surface_tint="#141417",
-        )
+            error="#F87171",
+            on_error="#09090B",
+            surface_tint="#111113",
+        ),
     )
     page.bgcolor = ft.colors.BACKGROUND
     page.padding = 0
@@ -422,7 +424,7 @@ def main(page: ft.Page):
                 on_theme_toggle=toggle_theme, on_lang_toggle=toggle_language,
                 on_nav_click=handle_header_nav, on_lang_click=open_lang, on_search_click=lambda: go("search", q=""),
                 on_home_click=open_home, on_login_click=open_auth, on_dashboard_click=open_dashboard, on_logout_click=logout)
-            footer = create_footer(on_footer_link=handle_footer) if view not in ("home", "auth") else None
+            footer = create_footer(on_footer_link=handle_footer, page=page, mobile=state["mobile"]) if view not in ("home", "auth") else None
             for part in (appbar, subnav, footer):
                 translate_tree(part, lang)
             page.appbar = appbar
@@ -494,17 +496,17 @@ def handle_reset_approve_html(req_id: int, token: str) -> tuple[int, str]:
     reply_mailto = rec.get("reply_mailto", "")
     html = (
         "<!doctype html><html><head><meta charset='utf-8'><title>Reset Password Disetujui</title></head>"
-        "<body style='font-family:Inter,system-ui,sans-serif;padding:32px;background:#0B0B0D;color:#FAFAFA;'>"
-        "<div style='max-width:560px;margin:0 auto;padding:24px;background:#141417;border:1px solid #27272A;border-radius:10px;'>"
-        "<h2 style='color:#EF4444;margin-top:0;'>✅ Reset Password Disetujui (Berlaku 10 Menit)</h2>"
+        "<body style='font-family:Inter,system-ui,-apple-system,sans-serif;padding:32px;background:#09090B;color:#F4F4F5;'>"
+        "<div style='max-width:560px;margin:0 auto;padding:28px;background:#111113;border:1px solid #27272A;border-radius:12px;'>"
+        "<h2 style='color:#F4F4F5;margin-top:0;'>✅ Reset Password Disetujui (Berlaku 10 Menit)</h2>"
         f"<p style='color:#A1A1AA;'>{msg}</p>"
         f"<p style='line-height:1.7;'>Username / NPM: <b>{rec.get('matched_username', '')}</b><br>"
-        f"Password Sementara (10 Menit): <b style='color:#FAFAFA;background:#27272A;padding:2px 6px;border-radius:4px;'>{rec.get('temp_password', '')}</b><br>"
+        f"Password Sementara (10 Menit): <b style='color:#F4F4F5;background:#27272A;padding:2px 8px;border-radius:6px;'>{rec.get('temp_password', '')}</b><br>"
         f"Kode Reset (10 Menit): <code>{rec.get('reset_token', '')}</code><br>"
         f"Email Tujuan: <b>{rec.get('email', '')}</b></p>"
         f"<div style='margin-top:20px;'>"
-        f"<a href='{reply_gmail}' style='display:inline-block;padding:10px 18px;background:#EF4444;color:#FFFFFF;text-decoration:none;border-radius:24px;font-weight:bold;margin-right:8px;'>📧 Buka Balasan Gmail</a>"
-        f"<a href='{reply_mailto}' style='display:inline-block;padding:10px 18px;background:#1C1C20;color:#FAFAFA;border:1px solid #27272A;text-decoration:none;border-radius:24px;'>✉️ Buka Aplikasi Email</a>"
+        f"<a href='{reply_gmail}' style='display:inline-block;padding:10px 18px;background:#FAFAFA;color:#09090B;text-decoration:none;border-radius:8px;font-weight:600;margin-right:8px;'>📧 Buka Balasan Gmail</a>"
+        f"<a href='{reply_mailto}' style='display:inline-block;padding:10px 18px;background:#18181B;color:#F4F4F5;border:1px solid #27272A;text-decoration:none;border-radius:8px;'>✉️ Buka Aplikasi Email</a>"
         f"</div></div></body></html>"
     )
     return 200, html

@@ -3,7 +3,7 @@ import inspect
 import flet as ft
 from components.code_editor import SAMPLES, get_samples
 from components.i18n_ui import translate_tree
-from components.ui import GREEN, card, chip, green_button, pad, page_banner, section_heading
+from components.ui import GREEN, card, chip, green_button, pad, page_banner, page_pad, section_heading
 from content.languages import find_lang
 from services import simulator
 from services.i18n import translate
@@ -164,10 +164,10 @@ def create_simulator_cards(lang_name: str = "Python", initial_code: str = None, 
                 code_tf,
                 ft.Text("Hasil Eksekusi Output:", weight=ft.FontWeight.BOLD, size=13, color=ft.colors.ON_SURFACE_VARIANT),
                 ft.Container(
-                    bgcolor="#121212",
-                    border=ft.border.all(1, "#262626"),
+                    bgcolor="#0F1117",
+                    border=ft.border.all(1, "#27272A"),
                     padding=16,
-                    border_radius=8,
+                    border_radius=10,
                     content=ft.Column([output_text], spacing=0),
                 ),
             ],
@@ -256,13 +256,13 @@ def get_tryit_view(*args, **kwargs) -> ft.Control:
         [
             page_banner("Ruang Kode UG-Stack", "Ruang eksperimen kode", mobile),
             ft.Container(
-                padding=pad(mobile),
+                padding=page_pad(page, mobile, vertical=28, max_width=1160),
                 content=ft.Column(
                     [
                         ft.Row(
                             [
                                 ft.TextButton("❮ Kembali", on_click=handle_back),
-                                chip("Coba Ruang Kode", "#D9EEE1"),
+                                chip("Coba Ruang Kode"),
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             wrap=True,

@@ -4,7 +4,7 @@ import time
 import flet as ft
 
 from components.code_editor import get_samples
-from components.ui import GREEN, card, chip, dark_button, green_button, lang_logo, page_banner, pad
+from components.ui import GREEN, card, chip, dark_button, green_button, lang_logo, page_banner, page_pad, pad
 from content.languages import LANGS
 from content.quizzes import PASS_PERCENT
 from services import quiz as quiz_service
@@ -147,7 +147,7 @@ def get_exercises_view(page: ft.Page, user, mobile: bool, on_open_quiz, on_tryit
         [
             page_banner("Latihan dan Quiz", "Uji pemahaman Anda setelah mempelajari tiap bahasa.", mobile),
             ft.Container(
-                padding=pad(mobile),
+                padding=page_pad(page, mobile),
                 content=ft.Column(
                     [
                         ft.Text(note, size=14, color=ft.colors.ON_SURFACE_VARIANT),
@@ -846,7 +846,7 @@ def get_quiz_view(
                 mobile,
             ),
             ft.Container(
-                padding=pad(mobile),
+                padding=page_pad(page, mobile, max_width=920),
                 content=ft.Column(
                     [
                         ft.Row(top_actions, alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
@@ -961,7 +961,7 @@ def get_certificates_view(page: ft.Page, user, mobile: bool, on_login, on_quiz, 
     return ft.Column(
         [
             page_banner("Sertifikat", "Bukti kelulusan quiz dengan kode verifikasi unik.", mobile),
-            ft.Container(padding=pad(mobile), content=ft.Column([*body, verify_card], spacing=16)),
+            ft.Container(padding=page_pad(page, mobile), content=ft.Column([*body, verify_card], spacing=16)),
         ],
         spacing=0,
         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -972,7 +972,7 @@ def get_certificate_detail_view(page: ft.Page, user, lang_key: str, mobile: bool
     cert = quiz_service.certificate(user["username"], lang_key) if user else None
     if not cert:
         return ft.Container(
-            padding=pad(mobile),
+            padding=page_pad(page, mobile, max_width=860),
             content=ft.Column(
                 [
                     ft.Text("Sertifikat belum tersedia. Lulus quiz terlebih dahulu.", size=16, color=ft.colors.ON_SURFACE),
@@ -1011,7 +1011,7 @@ def get_certificate_detail_view(page: ft.Page, user, lang_key: str, mobile: bool
         [
             page_banner(f"Sertifikat {cert['lang']}", "", mobile),
             ft.Container(
-                padding=pad(mobile),
+                padding=page_pad(page, mobile, max_width=860),
                 content=ft.Column(
                     [
                         sheet,

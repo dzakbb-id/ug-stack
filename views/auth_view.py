@@ -224,7 +224,7 @@ def open_change_avatar(page: ft.Page, user: dict, on_done=None):
         color=ft.colors.ON_SURFACE,
         border_radius=10,
     )
-    msg = ft.Text("", size=12, color=ft.colors.RED_700)
+    msg = ft.Text("", size=12, color=ft.colors.ERROR)
     width = max(260, min(420, (page.width or 440) - 60))
 
     def refresh_preview(new_val: str):
@@ -847,7 +847,7 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
     title = ft.GestureDetector(content=ft.Text(title_text, size=24, weight=ft.FontWeight.BOLD, color=ft.colors.ON_SURFACE), on_tap=on_title_tap)
     card = ft.Container(
         bgcolor=ft.colors.SURFACE,
-        padding=28,
+        padding=32,
         border_radius=12,
         border=ft.border.all(1, ft.colors.OUTLINE),
         content=ft.Column([
@@ -870,7 +870,7 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
             ),
             *switch_controls,
             ft.TextButton("❮ Kembali ke Beranda", on_click=lambda e: on_back() if on_back else None),
-        ], spacing=10, horizontal_alignment=ft.CrossAxisAlignment.STRETCH))
+        ], spacing=12, horizontal_alignment=ft.CrossAxisAlignment.STRETCH))
 
     return ft.Container(
         bgcolor=ft.colors.BACKGROUND,
