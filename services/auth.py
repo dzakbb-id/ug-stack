@@ -3,6 +3,7 @@ import csv
 from email.message import EmailMessage
 import hashlib
 import hmac
+import html as _html
 import io
 import json
 import os
@@ -27,7 +28,7 @@ USERS_FILE = "users.json"
 LOCK_FILE = "lockouts.json"
 RESET_REQUESTS_FILE = "password_resets.json"
 SUPPORT_EMAIL = "zetheron.id@gmail.com"
-RESET_EXPIRY_MINUTES = 10
+RESET_EXPIRY_MINUTES = 5
 RESET_EXPIRY_SECONDS = RESET_EXPIRY_MINUTES * 60
 RESERVED_USERNAMES = {"admin", "ugstack_admin_utama", "bot_ugstack"}
 MAX_BATCH = 100
@@ -41,7 +42,7 @@ def hash_password(password: str, salt_hex: str = None):
     return salt.hex(), digest.hex()
 
 
-def _new_user(username, password, role, must_change=False, npm="", full_name=""):
+def _new_user(username, password, role, must_change=False, npm="", full_name="", email=""):
     salt, pw_hash = hash_password(password)
     u = {"username": username, "salt": salt, "password_hash": pw_hash, "role": role,
          "created_at": datetime.now().isoformat(timespec="seconds"), "must_change": must_change}
@@ -49,6 +50,8 @@ def _new_user(username, password, role, must_change=False, npm="", full_name="")
         u["npm"] = npm
     if full_name:
         u["full_name"] = full_name
+    if (email or "").strip():
+        u["email"] = email.strip()
     return u
 
 
@@ -58,6 +61,8 @@ def _public(user: dict) -> dict:
         pub["npm"] = user["npm"]
     if user.get("full_name"):
         pub["full_name"] = user["full_name"]
+    if user.get("email"):
+        pub["email"] = user["email"]
     if user.get("avatar"):
         pub["avatar"] = user["avatar"]
     return pub
@@ -151,11 +156,13 @@ def _clear_user_locks(*keys: str) -> None:
 
 
 # ------------------------------------------------------------------ registrasi dan login
-def register(username: str, password: str, confirm: str, npm: str = None, full_name: str = None, require_identity: bool = False):
+def register(username: str, password: str, confirm: str, npm: str = None, full_name: str = None,
+             require_identity: bool = False, email: str = None):
     if not settings.registration_open():
         return False, "Pendaftaran mandiri sedang ditutup. Hubungi admin untuk dibuatkan akun."
     clean_name = " ".join((full_name or "").strip().split())
     clean_npm = (npm or "").strip()
+    clean_email = (email or "").strip()
     if require_identity:
         if not clean_name or not clean_npm:
             return False, "Nama lengkap dan NPM mahasiswa wajib diisi."
@@ -177,6 +184,10 @@ def register(username: str, password: str, confirm: str, npm: str = None, full_n
         return False, msg
     if password != confirm:
         return False, "Konfirmasi password tidak sama."
+    if clean_email:
+        ok_e, msg_e = validate_email(clean_email)
+        if not ok_e:
+            return False, msg_e
     if clean_npm and not require_identity:
         ok_npm, msg_npm = validate_username(clean_npm)
         if not ok_npm:
@@ -190,7 +201,8 @@ def register(username: str, password: str, confirm: str, npm: str = None, full_n
             users = storage.load_json(USERS_FILE, [])
             if _find(users, username.strip()) or (clean_npm and _find(users, clean_npm)):
                 return False, "Username sudah dipakai."
-            users.append(_new_user(username.strip(), password, "mahasiswa", npm=clean_npm, full_name=clean_name))
+            users.append(_new_user(username.strip(), password, "mahasiswa", npm=clean_npm,
+                                   full_name=clean_name, email=clean_email))
             storage.save_json(USERS_FILE, users)
     except StorageError as e:
         return False, str(e)
@@ -270,7 +282,7 @@ def login(username: str, password: str, expected_role: str = None, allow_admin: 
         exp_ts = user.get("reset_expires_at")
         if exp_ts and user.get("must_change") and now > float(exp_ts):
             audit.log(user["username"], "LOGIN_RESET_KEDALUWARSA")
-            return False, "Password reset sudah kedaluwarsa (batas waktu 10 menit telah habis). Silakan ajukan lupa password kembali.", None
+            return False, "Password reset sudah kedaluwarsa (batas waktu 5 menit telah habis). Silakan ajukan lupa password kembali.", None
         _clear_user_locks(key, user["username"], str(user.get("npm") or ""))
         if user["role"] == "admin" and not allow_admin:            # admin hanya lewat kode khusus / master password
             audit.log(user["username"], "LOGIN_ADMIN_DITOLAK", "admin mencoba login dengan password")
@@ -495,7 +507,8 @@ def list_users(actor):
         return []
     return [{"username": u["username"], "role": u["role"], "created_at": u["created_at"][:10],
              "must_change": bool(u.get("must_change")), "avatar": u.get("avatar", ""),
-             "npm": u.get("npm", ""), "full_name": u.get("full_name", "")}
+             "npm": u.get("npm", ""), "full_name": u.get("full_name", ""),
+             "email": u.get("email", "")}
             for u in storage.load_json(USERS_FILE, [])]
 
 
@@ -622,7 +635,7 @@ def generate_password(length: int = 12) -> str:
             return pw
 
 
-def create_user(actor, username: str, role: str, temp_password: str = None):
+def create_user(actor, username: str, role: str, temp_password: str = None, email: str = None):
     """Admin membuat akun (mahasiswa/dosen/admin). Mengembalikan (ok, pesan, password_sementara)."""
     if not is_admin(actor):
         return False, "Hanya admin yang boleh membuat akun.", None
@@ -633,6 +646,11 @@ def create_user(actor, username: str, role: str, temp_password: str = None):
         return False, msg, None
     if username.strip().lower() in RESERVED_USERNAMES and role != "admin":
         return False, "Username sudah dipakai.", None
+    clean_email = (email or "").strip()
+    if clean_email:
+        ok_e, msg_e = validate_email(clean_email)
+        if not ok_e:
+            return False, msg_e, None
     password = (temp_password or "").strip() or generate_password()
     ok, msg = validate_password(password)
     if not ok:
@@ -642,7 +660,7 @@ def create_user(actor, username: str, role: str, temp_password: str = None):
             users = storage.load_json(USERS_FILE, [])
             if _find(users, username.strip()):
                 return False, "Username sudah dipakai.", None
-            users.append(_new_user(username.strip(), password, role, must_change=True))
+            users.append(_new_user(username.strip(), password, role, must_change=True, email=clean_email))
             storage.save_json(USERS_FILE, users)
     except StorageError as e:
         return False, str(e), None
@@ -797,6 +815,30 @@ def set_avatar(username: str, avatar_data: str) -> tuple[bool, str]:
     return True, ("Foto profil berhasil diperbarui." if clean else "Foto profil dihapus.")
 
 
+def set_email(username: str, email: str) -> tuple[bool, str]:
+    """Simpan email aktif pengguna untuk menerima tautan & kode reset password (berlaku 5 menit)."""
+    target = (username or "").strip()
+    if not target:
+        return False, "Pengguna tidak ditemukan."
+    clean_email = (email or "").strip()
+    ok_e, msg_e = validate_email(clean_email)
+    if not ok_e:
+        return False, msg_e
+    try:
+        with storage.LOCK:
+            users = storage.load_json(USERS_FILE, [])
+            user = _find(users, target)
+            if user is None:
+                return False, "Pengguna tidak ditemukan."
+            actual_uname = user["username"]
+            user["email"] = clean_email
+            storage.save_json(USERS_FILE, users)
+    except StorageError as e:
+        return False, str(e)
+    audit.log(actual_uname, "UBAH_EMAIL", clean_email)
+    return True, "Email berhasil diperbarui."
+
+
 # ------------------------------------------------------------------ lupa password (email ke zetheron.id@gmail.com)
 def _make_approve_token(req_id: int, identifier: str, email: str) -> str:
     secret = str(admin_code.get_secret() or admin_code.ensure_secret() or "ugstack-reset-secret-2026")
@@ -848,6 +890,13 @@ def build_approve_url(record: dict) -> str:
     return f"{base_url}/api/reset-approve?{params}"
 
 
+def build_user_reset_url(username: str, reset_token: str) -> str:
+    """Bangun tautan halaman reset password (berlaku 5 menit) yang dikirim ke email pengguna."""
+    base_url = _detect_base_url()
+    params = urllib.parse.urlencode({"user": (username or "").strip(), "token": (reset_token or "").strip()})
+    return f"{base_url}/api/reset-password?{params}"
+
+
 def build_reset_mailto(record: dict) -> str:
     """Bangun tautan mailto: ke zetheron.id@gmail.com berisi detail permintaan reset password & tautan Setuju."""
     to_addr = record.get("to_email") or SUPPORT_EMAIL
@@ -863,7 +912,7 @@ def build_reset_mailto(record: dict) -> str:
         f"Keterangan  : {record.get('reason') or '-'}",
         f"Waktu       : {record.get('created_at', '-')}",
         "",
-        f"Klik Setuju (Kirim Email Reset Password 10 Menit ke {record.get('email', '-')}):",
+        f"Klik Setuju (Kirim Email Reset Password 5 Menit ke {record.get('email', '-')}):",
         approve_url,
     ]
     params = urllib.parse.urlencode({"subject": subject, "body": "\n".join(body_lines)}, quote_via=urllib.parse.quote)
@@ -885,7 +934,7 @@ def build_reset_gmail_url(record: dict) -> str:
         f"Keterangan  : {record.get('reason') or '-'}",
         f"Waktu       : {record.get('created_at', '-')}",
         "",
-        f"Klik Setuju (Kirim Email Reset Password 10 Menit ke {record.get('email', '-')}):",
+        f"Klik Setuju (Kirim Email Reset Password 5 Menit ke {record.get('email', '-')}):",
         approve_url,
     ]
     params = urllib.parse.urlencode(
@@ -896,9 +945,13 @@ def build_reset_gmail_url(record: dict) -> str:
 
 
 def build_reply_mailto(record: dict, temp_password: str) -> str:
-    """Bangun tautan mailto: untuk membalas pengguna dengan password reset yang berlaku 10 menit."""
+    """Bangun tautan mailto: untuk membalas pengguna dengan password reset yang berlaku 5 menit."""
     target_email = (record.get("email") or "").strip() or SUPPORT_EMAIL
     subject = f"[UGStack] Reset Password Disetujui - Berlaku {RESET_EXPIRY_MINUTES} Menit ({record.get('identifier', '')})"
+    reset_url = record.get("reset_url") or (
+        build_user_reset_url(record.get("matched_username") or record.get("identifier", ""), record.get("reset_token", ""))
+        if record.get("reset_token") else ""
+    )
     body_lines = [
         f"Halo {record.get('full_name') or record.get('identifier', '')},",
         "",
@@ -906,6 +959,7 @@ def build_reply_mailto(record: dict, temp_password: str) -> str:
         f"Username / NPM    : {record.get('matched_username') or record.get('identifier', '')}",
         f"Password Sementara: {temp_password}",
         f"Kode Reset        : {record.get('reset_token') or temp_password}",
+        *([f"Tautan Reset      : {reset_url}"] if reset_url else []),
         f"Masa Berlaku      : {RESET_EXPIRY_MINUTES} menit sejak email ini dikirim",
         "",
         f"Silakan masuk ke UGStack atau gunakan menu Reset Password dalam waktu {RESET_EXPIRY_MINUTES} menit.",
@@ -916,9 +970,13 @@ def build_reply_mailto(record: dict, temp_password: str) -> str:
 
 
 def build_reply_gmail_url(record: dict, temp_password: str) -> str:
-    """Bangun tautan Gmail Web Compose untuk membalas pengguna dengan password reset 10 menit."""
+    """Bangun tautan Gmail Web Compose untuk membalas pengguna dengan password reset 5 menit."""
     target_email = (record.get("email") or "").strip() or SUPPORT_EMAIL
     subject = f"[UGStack] Reset Password Disetujui - Berlaku {RESET_EXPIRY_MINUTES} Menit ({record.get('identifier', '')})"
+    reset_url = record.get("reset_url") or (
+        build_user_reset_url(record.get("matched_username") or record.get("identifier", ""), record.get("reset_token", ""))
+        if record.get("reset_token") else ""
+    )
     body_lines = [
         f"Halo {record.get('full_name') or record.get('identifier', '')},",
         "",
@@ -926,6 +984,7 @@ def build_reply_gmail_url(record: dict, temp_password: str) -> str:
         f"Username / NPM    : {record.get('matched_username') or record.get('identifier', '')}",
         f"Password Sementara: {temp_password}",
         f"Kode Reset        : {record.get('reset_token') or temp_password}",
+        *([f"Tautan Reset      : {reset_url}"] if reset_url else []),
         f"Masa Berlaku      : {RESET_EXPIRY_MINUTES} menit sejak email ini dikirim",
         "",
         f"Silakan masuk ke UGStack atau gunakan menu Reset Password dalam waktu {RESET_EXPIRY_MINUTES} menit.",
@@ -1005,8 +1064,12 @@ def _send_email_to_support(
         except Exception as exc:
             return False, f"webhook_error:{exc}"
 
-    # Relay otomatis via FormSubmit AJAX ketika dijalankan di luar unit test (atau bila UG_ENABLE_FORMSUBMIT=1)
-    if ("unittest" not in _sys.modules or os.getenv("UG_ENABLE_FORMSUBMIT") == "1") and to_email:
+    # Relay otomatis via FormSubmit AJAX hanya ke SUPPORT_EMAIL ketika dijalankan di luar unit test (atau bila UG_ENABLE_FORMSUBMIT=1)
+    if (
+        ("unittest" not in _sys.modules or os.getenv("UG_ENABLE_FORMSUBMIT") == "1")
+        and to_email
+        and to_email.strip().lower() == SUPPORT_EMAIL.lower()
+    ):
         try:
             fs_url = f"https://formsubmit.co/ajax/{to_email}"
             fs_data = {
@@ -1018,7 +1081,7 @@ def _send_email_to_support(
                 "_template": "table",
             }
             if approve_url:
-                fs_data["TOMBOL_SETUJU_RESET_10_MENIT"] = approve_url
+                fs_data["TOMBOL_SETUJU_RESET_5_MENIT"] = approve_url
             fs_payload = json.dumps(fs_data).encode("utf-8")
             fs_req = urllib.request.Request(
                 fs_url,
@@ -1042,8 +1105,88 @@ def _send_email_to_support(
     return False, "antrean_lokal"
 
 
-def request_password_reset(role: str, identifier: str, full_name: str = "", email: str = "", reason: str = "") -> tuple[bool, str, dict | None]:
-    """Ajukan permintaan lupa password untuk mahasiswa atau dosen dan kirim pesan + tombol Setuju ke zetheron.id@gmail.com."""
+def _send_user_reset_email(
+    target_email: str,
+    display_name: str,
+    username: str,
+    reset_token: str,
+    expires_at: float,
+    temp_password: str = "",
+    approved_by_support: bool = False,
+) -> tuple[bool, str, str]:
+    """Kirim email reset password (berlaku 5 menit) berisi tautan langsung dan kode reset ke email user."""
+    reset_url = build_user_reset_url(username, reset_token)
+    exp_str = datetime.fromtimestamp(expires_at).strftime("%H:%M:%S")
+    safe_name = _html.escape(display_name or username)
+    safe_uname = _html.escape(username)
+    safe_tok = _html.escape(reset_token)
+    safe_url = _html.escape(reset_url, quote=True)
+
+    if approved_by_support and temp_password:
+        subj = f"[UGStack] Reset Password Disetujui - Berlaku {RESET_EXPIRY_MINUTES} Menit ({username})"
+        intro_text = f"Permintaan lupa password Anda telah disetujui oleh {SUPPORT_EMAIL}."
+        intro_html = f"<p>Pemilik akun dukungan <b>{_html.escape(SUPPORT_EMAIL)}</b> telah menyetujui permintaan reset password Anda.</p>"
+        temp_line = f"Password Sementara: {temp_password}\n"
+        temp_html = f"<div style='margin-top:6px;'>Password Sementara: <b style='font-size:16px;color:#04AA6D;'>{_html.escape(temp_password)}</b></div>"
+        heading = f"✅ Reset Password Disetujui (Berlaku {RESET_EXPIRY_MINUTES} Menit)"
+    else:
+        subj = f"[UGStack] Tautan Reset Password - Berlaku {RESET_EXPIRY_MINUTES} Menit ({username})"
+        intro_text = "Kami menerima permintaan reset password untuk akun UGStack Anda."
+        intro_html = "<p>Kami menerima permintaan reset password untuk akun UGStack Anda.</p>"
+        temp_line = ""
+        temp_html = ""
+        heading = f"🔐 Reset Password UGStack (Berlaku {RESET_EXPIRY_MINUTES} Menit)"
+
+    body = (
+        f"Halo {display_name or username},\n\n"
+        f"{intro_text}\n"
+        f"Username / NPM    : {username}\n"
+        f"{temp_line}"
+        f"Kode Reset        : {reset_token}\n"
+        f"Tautan Reset      : {reset_url}\n"
+        f"Masa Berlaku      : {RESET_EXPIRY_MINUTES} menit (hingga pukul {exp_str})\n\n"
+        f"Buka tautan di atas atau masukkan Kode Reset pada menu Reset Password di UGStack sebelum {RESET_EXPIRY_MINUTES} menit berakhir.\n"
+        f"Dukungan UGStack ({SUPPORT_EMAIL})"
+    )
+    html_body = (
+        f"<div style='font-family:Arial,sans-serif;max-width:560px;padding:20px;border:1px solid #10b981;border-radius:12px;'>"
+        f"<h2 style='margin-top:0;color:#047857;'>{heading}</h2>"
+        f"<p>Halo <b>{safe_name}</b>,</p>"
+        f"{intro_html}"
+        f"<div style='background:#f3f4f6;padding:14px;border-radius:8px;margin:16px 0;font-size:14px;'>"
+        f"<div>Username / NPM: <b>{safe_uname}</b></div>"
+        f"{temp_html}"
+        f"<div style='margin-top:6px;'>Kode Reset: <code>{safe_tok}</code></div>"
+        f"<div style='margin-top:6px;color:#b45309;'>⏳ Berlaku selama: <b>{RESET_EXPIRY_MINUTES} menit</b> (hingga {exp_str})</div>"
+        f"</div>"
+        f"<div style='margin:20px 0;'>"
+        f"<a href='{safe_url}' style='display:inline-block;padding:12px 22px;background:#04AA6D;color:#ffffff;"
+        f"text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;'>"
+        f"🔐 Reset Password Sekarang ({RESET_EXPIRY_MINUTES} Menit)</a>"
+        f"</div>"
+        f"<p style='font-size:13px;color:#374151;'>Segera ubah password Anda sebelum batas waktu {RESET_EXPIRY_MINUTES} menit berakhir. "
+        f"Abaikan email ini jika Anda tidak merasa meminta reset password.</p>"
+        f"</div>"
+    )
+    sent, channel = _send_email_to_support(
+        subj,
+        body,
+        reply_to=SUPPORT_EMAIL,
+        to_email=target_email,
+        html_body=html_body,
+    )
+    return sent, channel, reset_url
+
+
+def request_password_reset(
+    role: str,
+    identifier: str,
+    full_name: str = "",
+    email: str = "",
+    reason: str = "",
+    now: float = None,
+) -> tuple[bool, str, dict | None]:
+    """Ajukan reset password: kirim email langsung (berlaku 5 menit) jika email akun cocok, atau teruskan persetujuan ke zetheron.id@gmail.com."""
     clean_role = (role or "mahasiswa").strip().lower()
     if clean_role not in ("mahasiswa", "dosen"):
         return False, "Peran pemohon harus mahasiswa atau dosen.", None
@@ -1081,7 +1224,13 @@ def request_password_reset(role: str, identifier: str, full_name: str = "", emai
     if len(clean_reason) > 500:
         return False, "Keterangan maksimal 500 karakter.", None
 
-    now_str = datetime.now().isoformat(timespec="seconds")
+    now_ts = float(now if now is not None else time.time())
+    now_str = datetime.fromtimestamp(now_ts).isoformat(timespec="seconds")
+    direct_token = ""
+    direct_expires_at = 0.0
+    matched_username = ""
+    matched_fullname = ""
+
     try:
         with storage.LOCK:
             users = storage.load_json(USERS_FILE, [])
@@ -1093,31 +1242,93 @@ def request_password_reset(role: str, identifier: str, full_name: str = "", emai
             if matched is not None and matched.get("role") != clean_role:
                 return False, f"Akun tersebut terdaftar sebagai {matched['role']}. Silakan pilih peran {matched['role']}.", None
 
+            registered_email = str(matched.get("email") or "").strip() if matched else ""
+            is_direct = bool(matched and registered_email and registered_email.lower() == clean_email.lower())
+            matched_username = matched["username"] if matched else ""
+            matched_fullname = clean_name or (matched.get("full_name", "") if matched else "")
+
             requests = storage.load_json(RESET_REQUESTS_FILE, [])
             if not isinstance(requests, list):
                 requests = []
             next_id = (max((int(r.get("id", 0)) for r in requests if isinstance(r, dict)), default=0) + 1)
-            approve_token = _make_approve_token(next_id, clean_id, clean_email)
-            rec = {
-                "id": next_id,
-                "role": clean_role,
-                "identifier": clean_id,
-                "matched_username": matched["username"] if matched else "",
-                "account_found": bool(matched),
-                "full_name": clean_name or (matched.get("full_name", "") if matched else ""),
-                "email": clean_email,
-                "reason": clean_reason or "Lupa password akun UGStack",
-                "to_email": SUPPORT_EMAIL,
-                "status": "menunggu",
-                "delivery": "antrean_lokal",
-                "approve_token": approve_token,
-                "created_at": now_str,
-            }
-            rec["approve_url"] = build_approve_url(rec)
+
+            if is_direct:
+                direct_token = secrets.token_urlsafe(12)
+                direct_expires_at = now_ts + RESET_EXPIRY_SECONDS
+                matched["reset_expires_at"] = direct_expires_at
+                matched["reset_token"] = direct_token
+                storage.save_json(USERS_FILE, users)
+                _clear_user_locks(clean_id, matched_username, str(matched.get("npm") or ""))
+                rec = {
+                    "id": next_id,
+                    "role": clean_role,
+                    "identifier": clean_id,
+                    "matched_username": matched_username,
+                    "account_found": True,
+                    "full_name": matched_fullname,
+                    "email": clean_email,
+                    "reason": clean_reason or "Lupa password akun UGStack",
+                    "to_email": clean_email,
+                    "status": "terkirim",
+                    "auto_sent": True,
+                    "delivery": "antrean_lokal",
+                    "expires_at": direct_expires_at,
+                    "expires_in_minutes": RESET_EXPIRY_MINUTES,
+                    "created_at": now_str,
+                }
+            else:
+                approve_token = _make_approve_token(next_id, clean_id, clean_email)
+                rec = {
+                    "id": next_id,
+                    "role": clean_role,
+                    "identifier": clean_id,
+                    "matched_username": matched_username,
+                    "account_found": bool(matched),
+                    "full_name": matched_fullname,
+                    "email": clean_email,
+                    "reason": clean_reason or "Lupa password akun UGStack",
+                    "to_email": SUPPORT_EMAIL,
+                    "status": "menunggu",
+                    "auto_sent": False,
+                    "delivery": "antrean_lokal",
+                    "approve_token": approve_token,
+                    "created_at": now_str,
+                }
+                rec["approve_url"] = build_approve_url(rec)
             requests.append(rec)
             storage.save_json(RESET_REQUESTS_FILE, requests)
     except StorageError as e:
         return False, str(e), None
+
+    if rec.get("auto_sent"):
+        sent, channel, _ = _send_user_reset_email(
+            target_email=clean_email,
+            display_name=matched_fullname or matched_username,
+            username=matched_username,
+            reset_token=direct_token,
+            expires_at=direct_expires_at,
+        )
+        rec["delivery"] = channel
+        rec["user_email_sent"] = sent
+        rec["user_email_channel"] = channel
+        try:
+            with storage.LOCK:
+                requests = storage.load_json(RESET_REQUESTS_FILE, [])
+                for r in requests:
+                    if isinstance(r, dict) and r.get("id") == rec["id"]:
+                        r["delivery"] = channel
+                        r["user_email_sent"] = sent
+                        r["user_email_channel"] = channel
+                        break
+                storage.save_json(RESET_REQUESTS_FILE, requests)
+        except Exception:
+            pass
+        audit.log(matched_username, "RESET_PASSWORD_EMAIL", f"dikirim ke {clean_email} (berlaku {RESET_EXPIRY_MINUTES}m)")
+        if sent:
+            msg = f"Email reset password (berlaku {RESET_EXPIRY_MINUTES} menit) telah dikirim ke {clean_email}. Cek kotak masuk atau folder spam Anda."
+        else:
+            msg = f"Permintaan reset password (berlaku {RESET_EXPIRY_MINUTES} menit) telah dibuat untuk {clean_email}, namun pengiriman email otomatis belum aktif di server. Hubungi {SUPPORT_EMAIL}."
+        return True, msg, rec
 
     role_title = "Dosen" if clean_role == "dosen" else "Mahasiswa"
     approve_url = rec["approve_url"]
@@ -1140,18 +1351,18 @@ def request_password_reset(role: str, identifier: str, full_name: str = "", emai
         f"<h2 style='margin-top:0;color:#111827;'>🔑 Permintaan Reset Password UGStack #{rec['id']}</h2>"
         f"<p>Pemohon mengajukan reset password dengan rincian berikut:</p>"
         f"<table style='width:100%;border-collapse:collapse;font-size:14px;'>"
-        f"<tr><td style='padding:6px 0;color:#6b7280;'>Peran</td><td><b>{role_title}</b></td></tr>"
-        f"<tr><td style='padding:6px 0;color:#6b7280;'>Identitas (NPM/Username)</td><td><b>{clean_id}</b></td></tr>"
-        f"<tr><td style='padding:6px 0;color:#6b7280;'>Nama Lengkap</td><td>{rec['full_name'] or '-'}</td></tr>"
-        f"<tr><td style='padding:6px 0;color:#6b7280;'>Email Pemohon</td><td><b>{clean_email}</b></td></tr>"
-        f"<tr><td style='padding:6px 0;color:#6b7280;'>Keterangan</td><td>{rec['reason']}</td></tr>"
+        f"<tr><td style='padding:6px 0;color:#6b7280;'>Peran</td><td><b>{_html.escape(role_title)}</b></td></tr>"
+        f"<tr><td style='padding:6px 0;color:#6b7280;'>Identitas (NPM/Username)</td><td><b>{_html.escape(clean_id)}</b></td></tr>"
+        f"<tr><td style='padding:6px 0;color:#6b7280;'>Nama Lengkap</td><td>{_html.escape(rec['full_name'] or '-')}</td></tr>"
+        f"<tr><td style='padding:6px 0;color:#6b7280;'>Email Pemohon</td><td><b>{_html.escape(clean_email)}</b></td></tr>"
+        f"<tr><td style='padding:6px 0;color:#6b7280;'>Keterangan</td><td>{_html.escape(rec['reason'])}</td></tr>"
         f"</table>"
         f"<div style='margin:24px 0;'>"
-        f"<a href='{approve_url}' style='display:inline-block;padding:12px 24px;background:#04AA6D;color:#ffffff;"
+        f"<a href='{_html.escape(approve_url, quote=True)}' style='display:inline-block;padding:12px 24px;background:#04AA6D;color:#ffffff;"
         f"text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;'>"
         f"✅ SETUJU — Kirim Email Reset Password ({RESET_EXPIRY_MINUTES} Menit)</a>"
         f"</div>"
-        f"<p style='font-size:12px;color:#6b7280;'>Saat Anda mengklik tombol Setuju di atas, sistem otomatis mengirimkan email reset password yang berlaku selama {RESET_EXPIRY_MINUTES} menit ke <b>{clean_email}</b>.</p>"
+        f"<p style='font-size:12px;color:#6b7280;'>Saat Anda mengklik tombol Setuju di atas, sistem otomatis mengirimkan email reset password yang berlaku selama {RESET_EXPIRY_MINUTES} menit ke <b>{_html.escape(clean_email)}</b>.</p>"
         f"</div>"
     )
     sent, channel = _send_email_to_support(
@@ -1217,8 +1428,9 @@ def list_password_resets(actor) -> list[dict]:
         for r in reversed(rows):
             if isinstance(r, dict):
                 item = dict(r)
-                item["approve_url"] = item.get("approve_url") or build_approve_url(item)
-                item["mailto_url"] = build_reset_mailto(item)
+                if not item.get("auto_sent"):
+                    item["approve_url"] = item.get("approve_url") or build_approve_url(item)
+                    item["mailto_url"] = build_reset_mailto(item)
                 result.append(item)
         return result
     except StorageError:
@@ -1232,7 +1444,7 @@ def _execute_approve_password_reset(
     verify_token: str = None,
     now: float = None,
 ) -> tuple[bool, str, dict | None]:
-    """Inti persetujuan ('Setuju') lupa password: buat password/token reset yang berlaku 10 menit dan kirim email ke user."""
+    """Inti persetujuan ('Setuju') lupa password: buat password/token reset yang berlaku 5 menit dan kirim email ke user."""
     password = (temp_password or "").strip() or generate_password()
     ok_pw, msg_pw = validate_password(password)
     if not ok_pw:
@@ -1241,7 +1453,6 @@ def _execute_approve_password_reset(
     now_ts = float(now if now is not None else time.time())
     expires_at = now_ts + RESET_EXPIRY_SECONDS
     now_str = datetime.fromtimestamp(now_ts).isoformat(timespec="seconds")
-    exp_str = datetime.fromtimestamp(expires_at).strftime("%H:%M:%S")
     reset_token = secrets.token_urlsafe(12)
 
     try:
@@ -1282,7 +1493,15 @@ def _execute_approve_password_reset(
                 if not ok_u:
                     return False, "Pengguna tidak ditemukan.", None
                 npm_val = ident if (role == "mahasiswa" and validate_npm_value(ident)[0]) else ""
-                user = _new_user(ident, password, role, must_change=True, npm=npm_val, full_name=target_req.get("full_name", ""))
+                user = _new_user(
+                    ident,
+                    password,
+                    role,
+                    must_change=True,
+                    npm=npm_val,
+                    full_name=target_req.get("full_name", ""),
+                    email=target_req.get("email", ""),
+                )
                 user["reset_expires_at"] = expires_at
                 user["reset_token"] = reset_token
                 users.append(user)
@@ -1311,43 +1530,21 @@ def _execute_approve_password_reset(
 
     sessions.revoke_user(actual_uname)
     rec_copy["temp_password"] = password
+    rec_copy["reset_url"] = build_user_reset_url(actual_uname, reset_token)
     rec_copy["reply_mailto"] = build_reply_mailto(rec_copy, password)
     rec_copy["reply_gmail_url"] = build_reply_gmail_url(rec_copy, password)
 
     user_email_sent = False
     user_email_channel = "antrean_lokal"
     if rec_copy.get("email"):
-        subj = f"[UGStack] Reset Password Disetujui - Berlaku {RESET_EXPIRY_MINUTES} Menit ({actual_uname})"
-        body = (
-            f"Halo {rec_copy.get('full_name') or actual_uname},\n\n"
-            f"Permintaan lupa password Anda telah disetujui oleh {SUPPORT_EMAIL}.\n"
-            f"Username / NPM    : {actual_uname}\n"
-            f"Password Sementara: {password}\n"
-            f"Kode Reset        : {reset_token}\n"
-            f"Masa Berlaku      : {RESET_EXPIRY_MINUTES} menit (hingga pukul {exp_str})\n\n"
-            f"Silakan login menggunakan Password Sementara di atas atau masukkan Kode Reset pada dialog Lupa Password maksimal dalam {RESET_EXPIRY_MINUTES} menit.\n"
-            f"Dukungan UGStack ({SUPPORT_EMAIL})"
-        )
-        html_body = (
-            f"<div style='font-family:Arial,sans-serif;max-width:560px;padding:20px;border:1px solid #10b981;border-radius:12px;'>"
-            f"<h2 style='margin-top:0;color:#047857;'>✅ Reset Password Disetujui (Berlaku {RESET_EXPIRY_MINUTES} Menit)</h2>"
-            f"<p>Halo <b>{rec_copy.get('full_name') or actual_uname}</b>,</p>"
-            f"<p>Pemilik akun dukungan <b>{SUPPORT_EMAIL}</b> telah menyetujui permintaan reset password Anda.</p>"
-            f"<div style='background:#f3f4f6;padding:14px;border-radius:8px;margin:16px 0;font-size:14px;'>"
-            f"<div>Username / NPM: <b>{actual_uname}</b></div>"
-            f"<div style='margin-top:6px;'>Password Sementara: <b style='font-size:16px;color:#04AA6D;'>{password}</b></div>"
-            f"<div style='margin-top:6px;'>Kode Reset: <code>{reset_token}</code></div>"
-            f"<div style='margin-top:6px;color:#b45309;'>⏳ Berlaku selama: <b>{RESET_EXPIRY_MINUTES} menit</b> (hingga {exp_str})</div>"
-            f"</div>"
-            f"<p style='font-size:13px;color:#374151;'>Segera login ke UGStack dan ganti password Anda sebelum batas waktu {RESET_EXPIRY_MINUTES} menit berakhir.</p>"
-            f"</div>"
-        )
-        user_email_sent, user_email_channel = _send_email_to_support(
-            subj,
-            body,
-            reply_to=SUPPORT_EMAIL,
-            to_email=rec_copy["email"],
-            html_body=html_body,
+        user_email_sent, user_email_channel, _ = _send_user_reset_email(
+            target_email=rec_copy["email"],
+            display_name=rec_copy.get("full_name") or actual_uname,
+            username=actual_uname,
+            reset_token=reset_token,
+            expires_at=expires_at,
+            temp_password=password,
+            approved_by_support=True,
         )
     rec_copy["user_email_sent"] = user_email_sent
     rec_copy["user_email_channel"] = user_email_channel
@@ -1361,7 +1558,7 @@ def _execute_approve_password_reset(
 
 
 def resolve_password_reset(actor, req_id: int, temp_password: str = None, now: float = None) -> tuple[bool, str, dict | None]:
-    """Admin menyetujui permintaan lupa password: kirim password reset yang berlaku selama 10 menit ke email pengguna."""
+    """Admin menyetujui permintaan lupa password: kirim password reset yang berlaku selama 5 menit ke email pengguna."""
     if not is_admin(actor):
         return False, "Hanya admin yang boleh mengelola pengguna.", None
     return _execute_approve_password_reset(
@@ -1374,7 +1571,7 @@ def resolve_password_reset(actor, req_id: int, temp_password: str = None, now: f
 
 
 def approve_password_reset_by_token(req_id: int, token: str, temp_password: str = None, now: float = None) -> tuple[bool, str, dict | None]:
-    """Pemilik email zetheron.id@gmail.com mengklik tombol 'Setuju' di email: otomatis kirim email reset password 10 menit ke user."""
+    """Pemilik email zetheron.id@gmail.com mengklik tombol 'Setuju' di email: otomatis kirim email reset password 5 menit ke user."""
     return _execute_approve_password_reset(
         req_id=req_id,
         approver_name=SUPPORT_EMAIL,
@@ -1384,8 +1581,37 @@ def approve_password_reset_by_token(req_id: int, token: str, temp_password: str 
     )
 
 
+def validate_reset_link(identifier: str, reset_code: str, now: float = None) -> tuple[bool, str, dict | None]:
+    """Periksa validitas tautan/kode reset password (batas waktu 5 menit)."""
+    clean_id = (identifier or "").strip()
+    clean_code = (reset_code or "").strip()
+    if not clean_id or not clean_code:
+        return False, "NPM/Username dan kode/password reset wajib diisi.", None
+    now_ts = float(now if now is not None else time.time())
+    try:
+        users = storage.load_json(USERS_FILE, [])
+    except StorageError as e:
+        return False, str(e), None
+    user = _find(users, clean_id)
+    if user is None:
+        return False, "Pengguna tidak ditemukan.", None
+    exp_ts = user.get("reset_expires_at")
+    if not exp_ts:
+        return False, "Tidak ada sesi reset password aktif untuk akun ini.", None
+    if now_ts > float(exp_ts):
+        return False, "Password reset sudah kedaluwarsa (batas waktu 5 menit telah habis). Silakan ajukan lupa password kembali.", None
+    stored_tok = str(user.get("reset_token") or "").strip()
+    if not (stored_tok and hmac.compare_digest(clean_code, stored_tok)):
+        return False, "Kode atau password reset tidak sesuai.", None
+    return True, "Token reset valid.", {
+        "username": user["username"],
+        "expires_at": float(exp_ts),
+        "remaining_seconds": max(0, int(float(exp_ts) - now_ts)),
+    }
+
+
 def complete_password_reset(identifier: str, reset_code: str, new_password: str, confirm_password: str, now: float = None) -> tuple[bool, str]:
-    """Pengguna menyelesaikan reset password menggunakan Password Sementara atau Kode Reset sebelum batas waktu 10 menit habis."""
+    """Pengguna menyelesaikan reset password menggunakan Password Sementara atau Kode Reset sebelum batas waktu 5 menit habis."""
     clean_id = (identifier or "").strip()
     clean_code = (reset_code or "").strip()
     if not clean_id or not clean_code:
@@ -1407,10 +1633,12 @@ def complete_password_reset(identifier: str, reset_code: str, new_password: str,
             if not exp_ts:
                 return False, "Tidak ada sesi reset password aktif untuk akun ini."
             if now_ts > float(exp_ts):
-                return False, "Password reset sudah kedaluwarsa (batas waktu 10 menit telah habis). Silakan ajukan lupa password kembali."
+                return False, "Password reset sudah kedaluwarsa (batas waktu 5 menit telah habis). Silakan ajukan lupa password kembali."
 
             stored_tok = str(user.get("reset_token") or "").strip()
-            code_ok = (stored_tok and hmac.compare_digest(clean_code, stored_tok)) or _verify(user, clean_code)
+            code_ok = (stored_tok and hmac.compare_digest(clean_code, stored_tok)) or (
+                bool(user.get("must_change")) and _verify(user, clean_code)
+            )
             if not code_ok:
                 return False, "Kode atau password reset tidak sesuai."
 
@@ -1421,9 +1649,25 @@ def complete_password_reset(identifier: str, reset_code: str, new_password: str,
             user.pop("reset_token", None)
             storage.save_json(USERS_FILE, users)
             _clear_user_locks(clean_id, actual_uname, str(user.get("npm") or ""))
+
+            requests = storage.load_json(RESET_REQUESTS_FILE, [])
+            if isinstance(requests, list):
+                req_changed = False
+                for r in requests:
+                    if (
+                        isinstance(r, dict)
+                        and r.get("status") == "terkirim"
+                        and str(r.get("matched_username") or "").lower() == actual_uname.lower()
+                    ):
+                        r["status"] = "selesai"
+                        r["resolved_at"] = datetime.fromtimestamp(now_ts).isoformat(timespec="seconds")
+                        req_changed = True
+                if req_changed:
+                    storage.save_json(RESET_REQUESTS_FILE, requests)
     except StorageError as e:
         return False, str(e)
 
-    audit.log(actual_uname, "RESET_PASSWORD_SELESAI", "reset dalam batas 10 menit")
+    sessions.revoke_user(actual_uname)
+    audit.log(actual_uname, "RESET_PASSWORD_SELESAI", "reset dalam batas 5 menit")
     return True, "Password baru berhasil disimpan. Silakan login."
 

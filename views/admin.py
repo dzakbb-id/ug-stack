@@ -435,7 +435,8 @@ def _tab_users(page, user, mobile, refresh):
     reset_cards = []
     for req in reset_reqs:
         req_id = req.get("id")
-        is_done = req.get("status") == "selesai"
+        req_status = req.get("status")
+        is_done = req_status in ("selesai", "terkirim")
 
         def resolve_req(e, rid=req_id):
             ok, msg, res = auth.resolve_password_reset(user, rid)
@@ -475,7 +476,8 @@ def _tab_users(page, user, mobile, refresh):
                 ],
             )
 
-        status_chip = chip("SELESAI") if is_done else chip("MENUNGGU")
+        status_label = "SELESAI" if req_status == "selesai" else ("EMAIL TERKIRIM" if req_status == "terkirim" else "MENUNGGU")
+        status_chip = chip(status_label)
         reset_cards.append(
             glass_card(
                 ft.Column(
@@ -498,7 +500,7 @@ def _tab_users(page, user, mobile, refresh):
                         ft.Text(f"Keterangan: {req.get('reason', '-')}", size=12, color=TEXT_PRIMARY),
                         ft.Row(
                             [
-                                _dark_outlined_btn("✅ Setuju — Proses & Reset Password (10 Menit)", resolve_req, disabled=is_done),
+                                _dark_outlined_btn("✅ Setuju — Proses & Reset Password (5 Menit)", resolve_req, disabled=is_done),
                             ],
                             spacing=8,
                         ),

@@ -209,6 +209,64 @@ def open_change_username(page: ft.Page, user: dict, on_done=None):
     page.update()
 
 
+def open_change_email(page: ft.Page, user: dict, on_done=None):
+    """Dialog atur email aktif pengguna untuk fitur reset password 5 menit."""
+    cur_email = str(user.get("email") or "").strip()
+    email_tf = ft.TextField(
+        label="Email Aktif (untuk menerima tautan reset password 5 menit)",
+        value=cur_email,
+        color=ft.colors.ON_SURFACE,
+        border_radius=8,
+        autofocus=True,
+    )
+    msg = ft.Text("", size=13, color=ft.colors.ERROR)
+    width = max(250, min(390, (page.width or 410) - 70))
+
+    def save(e=None):
+        candidate = (email_tf.value or "").strip()
+        ok, text = auth.set_email(user["username"], candidate)
+        if ok:
+            user["email"] = candidate
+            try:
+                page.client_storage.set("ugstack_pref_user", sessions.sign_user_backup(user))
+            except Exception:
+                pass
+            page.dialog.open = False
+            page.show_snack(text)
+            if on_done:
+                on_done()
+            page.update()
+        else:
+            msg.value = text
+            page.update()
+
+    email_tf.on_submit = save
+    page.dialog = ft.AlertDialog(
+        modal=True,
+        shape=ft.RoundedRectangleBorder(radius=12),
+        title=ft.Text("📧 Atur Email Akun", weight=ft.FontWeight.BOLD),
+        content=ft.Container(
+            width=width,
+            content=ft.Column(
+                [
+                    ft.Text("Simpan email aktif Anda agar sistem dapat mengirim tautan & kode reset password (berlaku 5 menit) secara langsung.", size=13),
+                    email_tf,
+                    msg,
+                ],
+                tight=True,
+                spacing=10,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+        ),
+        actions=[
+            ft.TextButton("Batal", on_click=lambda e: (setattr(page.dialog, "open", False), page.update())),
+            ft.ElevatedButton("Simpan", bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, on_click=save),
+        ],
+    )
+    page.dialog.open = True
+    page.update()
+
+
 def open_change_avatar(page: ft.Page, user: dict, on_done=None):
     """Dialog unggah / ganti foto profil (mendukung FilePicker lokal, URL gambar, dan avatar preset)."""
     current_avatar = user.get("avatar") or auth.get_avatar(user["username"])
@@ -489,10 +547,16 @@ def open_admin_entry(page: ft.Page, on_login_success):
     page.update()
 
 
-def open_redeem_reset_code(page: ft.Page, initial_id: str = ""):
-    """Dialog untuk mengatur password baru menggunakan Kode/Password Reset yang berlaku 10 menit dari email."""
+def open_redeem_reset_code(page: ft.Page, initial_id: str = "", initial_code: str = ""):
+    """Dialog untuk mengatur password baru menggunakan Kode/Password Reset yang berlaku 5 menit dari email."""
     ident_tf = ft.TextField(label="NPM / Username Anda", value=initial_id, border_radius=8)
-    code_tf = ft.TextField(label="Kode Reset / Password Sementara (berlaku 10 menit)", password=True, can_reveal_password=True, border_radius=8)
+    code_tf = ft.TextField(
+        label="Kode Reset / Password Sementara (berlaku 5 menit)",
+        value=initial_code,
+        password=True,
+        can_reveal_password=True,
+        border_radius=8,
+    )
     new_tf = ft.TextField(label="Password baru (min. 8, huruf + angka)", password=True, can_reveal_password=True, border_radius=8)
     conf_tf = ft.TextField(label="Ulangi password baru", password=True, can_reveal_password=True, border_radius=8)
     msg = ft.Text("", size=13, color=ft.colors.ERROR)
@@ -514,13 +578,13 @@ def open_redeem_reset_code(page: ft.Page, initial_id: str = ""):
     conf_tf.on_submit = save_new_pw
     page.dialog = ft.AlertDialog(
         modal=True,
-        title=ft.Text("🔓 Gunakan Kode Reset (10 Menit)"),
+        title=ft.Text("🔓 Gunakan Kode Reset (5 Menit)"),
         content=ft.Container(
             width=width,
             content=ft.Column(
                 [
                     ft.Text(
-                        "Masukkan Kode Reset atau Password Sementara yang dikirim ke email Anda setelah zetheron.id@gmail.com mengklik Setuju (berlaku 10 menit).",
+                        "Masukkan Kode Reset atau Password Sementara yang dikirim ke email Anda (berlaku 5 menit).",
                         size=12,
                         color=ft.colors.ON_SURFACE_VARIANT,
                     ),
@@ -545,7 +609,7 @@ def open_redeem_reset_code(page: ft.Page, initial_id: str = ""):
 
 
 def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial_name: str = "", initial_id: str = ""):
-    """Dialog Lupa Password untuk Mahasiswa dan Dosen; mengirim tiket & email ke zetheron.id@gmail.com."""
+    """Dialog Lupa Password untuk Mahasiswa dan Dosen; kirim email reset 5 menit langsung atau via persetujuan zetheron.id@gmail.com."""
     init_role = default_role if default_role in ("mahasiswa", "dosen") else "mahasiswa"
     role_dd = ft.Dropdown(
         label="Peran Akun",
@@ -567,7 +631,7 @@ def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial
         border_radius=8,
     )
     email_tf = ft.TextField(
-        label="Email Aktif Anda (untuk menerima password baru)",
+        label="Email Aktif Anda (untuk menerima tautan reset 5 menit)",
         border_radius=8,
     )
     reason_tf = ft.TextField(
@@ -611,37 +675,48 @@ def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial
             page.update()
             return
         feedback.color = ft.colors.ON_SURFACE
-        feedback.value = f"{msg} (Tiket #{rec['id']})"
-        mailto_url = rec.get("mailto_url") or auth.build_reset_mailto(rec)
-        gmail_url = rec.get("gmail_url") or auth.build_reset_gmail_url(rec)
-        if rec.get("delivery") != "smtp":
-            _open_mailto(mailto_url)
-        action_box.controls = [
-            ft.ElevatedButton(
-                "📧 Kirim via Aplikasi Email (zetheron.id@gmail.com)",
-                bgcolor=ft.colors.PRIMARY,
-                color=ft.colors.ON_PRIMARY,
-                on_click=lambda ev, u=mailto_url: _open_mailto(u),
-            ),
-            ft.ElevatedButton(
-                "🌐 Kirim via Gmail Web (zetheron.id@gmail.com)",
-                bgcolor=ft.colors.SURFACE_VARIANT,
-                color=ft.colors.ON_SURFACE,
-                on_click=lambda ev, u=gmail_url: _open_mailto(u),
-            ),
-            ft.OutlinedButton(
-                "Salin Email zetheron.id@gmail.com",
-                icon=ft.icons.COPY,
-                on_click=_copy_support_email,
-            ),
-        ]
+        if rec.get("auto_sent"):
+            feedback.value = msg
+            action_box.controls = [
+                ft.ElevatedButton(
+                    "🔓 Masukkan Kode Reset (5 Menit)",
+                    bgcolor=ft.colors.PRIMARY,
+                    color=ft.colors.ON_PRIMARY,
+                    on_click=lambda ev: open_redeem_reset_code(page, initial_id=(id_tf.value or "").strip()),
+                ),
+            ]
+        else:
+            feedback.value = f"{msg} (Tiket #{rec['id']})"
+            mailto_url = rec.get("mailto_url") or auth.build_reset_mailto(rec)
+            gmail_url = rec.get("gmail_url") or auth.build_reset_gmail_url(rec)
+            if rec.get("delivery") != "smtp":
+                _open_mailto(mailto_url)
+            action_box.controls = [
+                ft.ElevatedButton(
+                    "📧 Kirim via Aplikasi Email (zetheron.id@gmail.com)",
+                    bgcolor=ft.colors.PRIMARY,
+                    color=ft.colors.ON_PRIMARY,
+                    on_click=lambda ev, u=mailto_url: _open_mailto(u),
+                ),
+                ft.ElevatedButton(
+                    "🌐 Kirim via Gmail Web (zetheron.id@gmail.com)",
+                    bgcolor=ft.colors.SURFACE_VARIANT,
+                    color=ft.colors.ON_SURFACE,
+                    on_click=lambda ev, u=gmail_url: _open_mailto(u),
+                ),
+                ft.OutlinedButton(
+                    "Salin Email zetheron.id@gmail.com",
+                    icon=ft.icons.COPY,
+                    on_click=_copy_support_email,
+                ),
+            ]
         action_box.visible = True
         page.show_snack(msg)
         page.update()
 
     submit_btn = ft.ElevatedButton("Kirim Permintaan Reset", bgcolor=ft.colors.PRIMARY, color=ft.colors.ON_PRIMARY, on_click=submit_reset)
     redeem_btn = ft.TextButton(
-        "🔓 Sudah dapat email reset (10 menit)? Atur password baru",
+        "🔓 Sudah dapat email reset (5 menit)? Atur password baru",
         on_click=lambda e: open_redeem_reset_code(page, initial_id=(id_tf.value or "").strip()),
     )
     page.dialog = ft.AlertDialog(
@@ -653,7 +728,7 @@ def open_forgot_password(page: ft.Page, default_role: str = "mahasiswa", initial
                 [
                     ft.Text(
                         "Mahasiswa atau Dosen yang lupa password dapat mengajukan reset password. "
-                        "Pesan permintaan akan diteruskan ke email dukungan resmi zetheron.id@gmail.com dan Panel Admin.",
+                        "Jika email akun sudah terdaftar, tautan reset (berlaku 5 menit) langsung dikirim ke email Anda; jika belum, diteruskan ke zetheron.id@gmail.com dan Panel Admin.",
                         size=12,
                         color=ft.colors.ON_SURFACE_VARIANT,
                     ),
@@ -729,6 +804,13 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
         border_radius=8,
         visible=not is_login,
     )
+    email_field = ft.TextField(
+        label="Email Aktif (opsional, untuk reset password 5 menit)",
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        border_color=ft.colors.OUTLINE,
+        border_radius=8,
+        visible=not is_login,
+    )
     message = ft.Text("", size=13, color=ft.colors.ERROR)
 
     def _on_name_change(e=None):
@@ -776,6 +858,7 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
                 npm=npm_field.value,
                 full_name=full_name_field.value,
                 require_identity=True,
+                email=email_field.value,
             )
             if ok:
                 page.show_snack(msg)
@@ -789,6 +872,7 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
     username.on_submit = submit
     password.on_submit = submit
     confirm.on_submit = submit
+    email_field.on_submit = submit
 
     def role_button(key, label):
         active = key == role
@@ -826,6 +910,15 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
                 ),
             )
         )
+        switch_controls.append(
+            ft.TextButton(
+                "🔓 Punya kode reset (5 menit)?",
+                on_click=lambda e: open_redeem_reset_code(
+                    page,
+                    initial_id=((npm_field.value or "").strip() if is_mhs else (username.value or "").strip()),
+                ),
+            )
+        )
     if role == "mahasiswa" and is_login:
         switch_controls.append(ft.TextButton("Belum punya akun? Daftar", visible=can_register,
                                              on_click=lambda e: on_switch_mode("register", "mahasiswa") if on_switch_mode else None))
@@ -856,7 +949,7 @@ def get_auth_view(page: ft.Page, mode="login", role="mahasiswa", on_login_succes
             ft.Text(HINT[role] if is_login else "Isi nama lengkap dan NPM Anda. Password minimal 8 karakter (huruf dan angka).",
                     size=13, color=ft.colors.ON_SURFACE_VARIANT),
             ft.Container(height=4),
-            full_name_field, npm_field, username, password, confirm, message,
+            full_name_field, npm_field, username, password, confirm, email_field, message,
             ft.ElevatedButton(
                 "Login" if is_login else "Daftar",
                 bgcolor=ft.colors.PRIMARY,

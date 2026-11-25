@@ -533,17 +533,18 @@ class TestEndToEndUI(unittest.TestCase):
             temp_pw_dsn = page.clipboard
             self.assertTrue(len(temp_pw_dsn) >= 8)
 
-            # Dosen dapat login dengan password sementara hasil reset dalam batas waktu 10 menit
+            # Dosen dapat login dengan password sementara hasil reset dalam batas waktu 5 menit
             ok_login_dsn, _, u_dsn = auth.login("dosen_bambang", temp_pw_dsn, expected_role="dosen")
             self.assertTrue(ok_login_dsn)
             self.assertTrue(u_dsn["must_change"])
 
-            # 4. Uji klik tombol "Setuju" dari email zetheron.id@gmail.com (otomatis kirim email reset password 10 menit)
+            # 4. Uji klik tombol "Setuju" dari email zetheron.id@gmail.com (otomatis kirim email reset password 5 menit)
             mhs_req = next(r for r in reqs if r["role"] == "mahasiswa")
             self.assertIn("/api/reset-approve?", mhs_req["approve_url"])
             status_code, html_out = main.handle_reset_approve_html(mhs_req["id"], mhs_req["approve_token"])
             self.assertEqual(status_code, 200)
-            self.assertIn("Reset Password Disetujui (Berlaku 10 Menit)", html_out)
+            self.assertIn("Reset Password Disetujui (Berlaku 5 Menit)", html_out)
+            self.assertIn("/api/reset-password?", html_out)
 
             t0 = 1_700_000_000.0
             ok_app, msg_app, approved_rec = auth.approve_password_reset_by_token(
@@ -552,38 +553,38 @@ class TestEndToEndUI(unittest.TestCase):
                 now=t0,
             )
             self.assertTrue(ok_app, msg_app)
-            self.assertEqual(approved_rec["expires_in_minutes"], 10)
-            self.assertEqual(approved_rec["expires_at"], t0 + 600)
+            self.assertEqual(approved_rec["expires_in_minutes"], 5)
+            self.assertEqual(approved_rec["expires_at"], t0 + 300)
 
-            # Login / reset setelah 10 menit (601 detik) otomatis ditolak karena kedaluwarsa
+            # Login / reset setelah 5 menit (301 detik) otomatis ditolak karena kedaluwarsa
             ok_exp_login, msg_exp_login, _ = auth.login(
                 "50421888",
                 approved_rec["temp_password"],
                 expected_role="mahasiswa",
                 npm="50421888",
                 full_name="Rina Kartika",
-                now=t0 + 601,
+                now=t0 + 301,
             )
             self.assertFalse(ok_exp_login)
-            self.assertIn("10 menit", msg_exp_login)
+            self.assertIn("5 menit", msg_exp_login)
 
             ok_exp_rst, msg_exp_rst = auth.complete_password_reset(
                 "50421888",
                 approved_rec["reset_token"],
                 "PasswordBaru123",
                 "PasswordBaru123",
-                now=t0 + 601,
+                now=t0 + 301,
             )
             self.assertFalse(ok_exp_rst)
-            self.assertIn("10 menit", msg_exp_rst)
+            self.assertIn("5 menit", msg_exp_rst)
 
-            # Dalam batas 10 menit (mis. menit ke-5 / +300 detik), mahasiswa berhasil mengganti password dengan kode reset
+            # Dalam batas 5 menit (mis. menit ke-4 / +240 detik), mahasiswa berhasil mengganti password dengan kode reset
             ok_valid_rst, msg_valid_rst = auth.complete_password_reset(
                 "50421888",
                 approved_rec["reset_token"],
                 "PasswordBaru123",
                 "PasswordBaru123",
-                now=t0 + 300,
+                now=t0 + 240,
             )
             self.assertTrue(ok_valid_rst, msg_valid_rst)
             ok_new_login, _, u_mhs_new = auth.login(
@@ -742,6 +743,114 @@ class TestEndToEndUI(unittest.TestCase):
             self.assertIn("Kunci Jawaban:", page_texts)
             self.assertIn("Penjelasan:", page_texts)
         finally:
+            main.run_pending = orig_run_pending
+
+    def test_T82_reset_password_email_langsung_5_menit(self):
+        """Uji fitur reset password langsung ke email user dengan batas waktu 5 menit, tautan /api/reset-password, dan dialog UI."""
+        import re
+        from services import sessions
+
+        orig_run_pending = main.run_pending
+        orig_send = auth._send_email_to_support
+        sent_emails = []
+        main.run_pending = lambda page: [fn() for fn in getattr(page, "_ug_pending", [])]
+
+        def fake_send(subject, body, reply_to="", to_email="", html_body="", approve_url=""):
+            sent_emails.append({
+                "subject": subject,
+                "body": body,
+                "to_email": to_email,
+                "html_body": html_body,
+            })
+            return True, "smtp"
+
+        auth._send_email_to_support = fake_send
+        try:
+            # 1. Daftar mahasiswa dengan email aktif dan buat sesi aktif
+            ok_reg, msg_reg = auth.register(
+                "50429001",
+                "LamaAman123",
+                "LamaAman123",
+                npm="50429001",
+                full_name="Dewi Lestari",
+                require_identity=True,
+                email="dewi@student.gunadarma.ac.id",
+            )
+            self.assertTrue(ok_reg, msg_reg)
+            ok_l, _, user_obj = auth.login(
+                "50429001", "LamaAman123", expected_role="mahasiswa", npm="50429001", full_name="Dewi Lestari"
+            )
+            self.assertTrue(ok_l)
+            sess_tok = sessions.create(user_obj)
+            self.assertIsNotNone(sessions.restore(sess_tok))
+
+            # 2. Ajukan reset password dengan email terdaftar -> email langsung dikirim ke user (berlaku 5 menit)
+            t0 = 1_700_100_000.0
+            ok_req, msg_req, rec = auth.request_password_reset(
+                role="mahasiswa",
+                identifier="50429001",
+                full_name="Dewi Lestari",
+                email="dewi@student.gunadarma.ac.id",
+                now=t0,
+            )
+            self.assertTrue(ok_req, msg_req)
+            self.assertTrue(rec.get("auto_sent"))
+            self.assertTrue(rec.get("user_email_sent"))
+            self.assertEqual(rec["expires_in_minutes"], 5)
+            self.assertEqual(rec["expires_at"], t0 + 300)
+            self.assertIn("5 menit", msg_req)
+            self.assertEqual(len(sent_emails), 1)
+            self.assertEqual(sent_emails[0]["to_email"], "dewi@student.gunadarma.ac.id")
+            self.assertIn("5 Menit", sent_emails[0]["subject"])
+            self.assertIn("/api/reset-password?", sent_emails[0]["body"])
+
+            m_tok = re.search(r"Kode Reset\s*:\s*(\S+)", sent_emails[0]["body"])
+            self.assertIsNotNone(m_tok)
+            reset_tok = m_tok.group(1)
+
+            # Password lama masih tetap valid sebelum reset diselesaikan (mencegah DoS takeover)
+            self.assertTrue(
+                auth.login("50429001", "LamaAman123", expected_role="mahasiswa", npm="50429001", full_name="Dewi Lestari", now=t0 + 60)[0]
+            )
+
+            # 3. Cek tautan web /api/reset-password: valid dalam 5 menit, ditolak setelah 5 menit (+301s)
+            st_exp, html_exp = main.handle_reset_password_html("50429001", reset_tok, is_post=False, now=t0 + 301)
+            self.assertEqual(st_exp, 400)
+            self.assertIn("5 menit", html_exp)
+
+            st_get, html_get = main.handle_reset_password_html("50429001", reset_tok, is_post=False, now=t0 + 120)
+            self.assertEqual(st_get, 200)
+            self.assertIn("Reset Password (5 Menit)", html_get)
+
+            # 4. Submit password baru melalui endpoint web sebelum 5 menit berakhir
+            st_post, html_post = main.handle_reset_password_html(
+                "50429001", reset_tok, "BaruAman456", "BaruAman456", is_post=True, now=t0 + 180
+            )
+            self.assertEqual(st_post, 200)
+            self.assertIn("Password Berhasil Direset", html_post)
+
+            # Sesi lama dicabut dan token tidak bisa dipakai ulang
+            self.assertIsNone(sessions.restore(sess_tok))
+            st_reuse, _ = main.handle_reset_password_html("50429001", reset_tok, is_post=False, now=t0 + 190)
+            self.assertEqual(st_reuse, 400)
+
+            # Login dengan password baru berhasil
+            self.assertTrue(
+                auth.login("50429001", "BaruAman456", expected_role="mahasiswa", npm="50429001", full_name="Dewi Lestari", now=t0 + 500)[0]
+            )
+
+            # 5. Uji tombol "Punya kode reset (5 menit)?" di halaman Login UI
+            page = FakePage(width=1280)
+            main.main(page)
+            find_buttons(page.appbar, "Masuk")[0].on_click(DummyEvent())
+            redeem_btns = find_buttons(page.controls[1], "Punya kode reset")
+            self.assertTrue(redeem_btns)
+            redeem_btns[0].on_click(DummyEvent(redeem_btns[0]))
+            self.assertIsNotNone(page.dialog)
+            self.assertTrue(page.dialog.open)
+            self.assertIn("5 Menit", page.dialog.title.value)
+        finally:
+            auth._send_email_to_support = orig_send
             main.run_pending = orig_run_pending
 
 
