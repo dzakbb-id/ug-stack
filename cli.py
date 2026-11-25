@@ -209,7 +209,7 @@ def proses_daftar(io: Console) -> None:
 
 
 def proses_lupa_password(io: Console) -> None:
-    """Ajukan reset password (mahasiswa/dosen); diteruskan ke zetheron.id@gmail.com."""
+    """Ajukan reset password (mahasiswa/dosen); kirim email reset 5 menit jika email cocok atau teruskan ke zetheron.id@gmail.com."""
     role = (io.ask("Peran (mahasiswa/dosen) [mahasiswa]: ") or "mahasiswa").strip().lower()
     full_name = io.ask("Nama lengkap: ")
     ident = io.ask("NPM / Username: ")
@@ -217,8 +217,18 @@ def proses_lupa_password(io: Console) -> None:
     reason = io.ask("Keterangan (opsional): ")
     ok, msg, rec = auth.request_password_reset(role, ident, full_name=full_name, email=email, reason=reason)
     io.say(("[OK] " if ok else "[GAGAL] ") + msg)
-    if ok and rec:
+    if ok and rec and not rec.get("auto_sent"):
         io.say(f"Tiket #{rec['id']} diarahkan ke {auth.SUPPORT_EMAIL}")
+
+
+def proses_reset_password_kode(io: Console) -> None:
+    """Selesaikan reset password dengan kode/password sementara dari email (berlaku 5 menit)."""
+    ident = io.ask("NPM / Username: ")
+    code = io.ask("Kode Reset / Password Sementara (berlaku 5 menit): ")
+    new_pw = io.ask("Password baru: ")
+    conf_pw = io.ask("Ulangi password baru: ")
+    ok, msg = auth.complete_password_reset(ident, code, new_pw, conf_pw)
+    io.say(("[OK] " if ok else "[GAGAL] ") + msg)
 
 
 def paksa_ganti_password(io: Console, user: dict) -> dict:
@@ -241,7 +251,7 @@ def run(io: Console = None) -> None:
     io.say("=== UG-Stack (versi konsol) ===")
     try:
         while True:
-            io.say("\n1. Login (mahasiswa / dosen)\n2. Daftar mahasiswa\n3. Login Admin (kode)\n4. Lupa password (mahasiswa / dosen)\n0. Keluar")
+            io.say("\n1. Login (mahasiswa / dosen)\n2. Daftar mahasiswa\n3. Login Admin (kode)\n4. Lupa password (mahasiswa / dosen)\n5. Reset password dengan kode (5 menit)\n0. Keluar")
             pilihan = io.ask("Pilih: ")
             if pilihan == "1":
                 user = proses_login(io)
@@ -267,6 +277,8 @@ def run(io: Console = None) -> None:
                 proses_daftar(io)
             elif pilihan == "4":
                 proses_lupa_password(io)
+            elif pilihan == "5":
+                proses_reset_password_kode(io)
             elif pilihan == "0":
                 io.say("Sampai jumpa.")
                 return

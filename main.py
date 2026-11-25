@@ -1,3 +1,4 @@
+import html as _html
 import os
 import time
 
@@ -11,7 +12,7 @@ from services import admin_code, auth, i18n, modules as module_service, progress
 from services.roles import can_manage_content
 from services.storage import StorageError
 from views.admin import get_admin_view
-from views.auth_view import UPLOAD_DIR, get_auth_view, open_change_password
+from views.auth_view import UPLOAD_DIR, get_auth_view, open_change_password, open_redeem_reset_code
 from views.chat import create_chat_view
 from views.dashboard import get_dashboard_view
 from views.exercises import get_certificate_detail_view, get_certificates_view, get_exercises_view, get_quiz_view
@@ -445,8 +446,20 @@ def main(page: ft.Page):
             render()
 
     def try_admin_from_route():
-        """Tautan khusus admin dari generator atau tautan persetujuan reset password (/api/reset-approve?id=...&token=...)."""
+        """Tautan khusus admin dari generator atau tautan reset password (/api/reset-approve, /api/reset-password)."""
         route = getattr(page, "route", "") or ""
+        if "reset-password" in route and "user=" in route and "token=" in route:
+            try:
+                import urllib.parse as _up
+                q_part = route.split("?", 1)[1] if "?" in route else route.lstrip("/")
+                qs = _up.parse_qs(q_part)
+                uname = (qs.get("user") or [""])[0]
+                tok = (qs.get("token") or [""])[0]
+                if uname and tok:
+                    open_redeem_reset_code(page, initial_id=uname, initial_code=tok)
+                    return
+            except Exception:
+                pass
         if "reset-approve" in route or ("id=" in route and "token=" in route):
             try:
                 import urllib.parse as _up
@@ -480,40 +493,125 @@ def main(page: ft.Page):
 
 
 def handle_reset_approve_html(req_id: int, token: str) -> tuple[int, str]:
-    """Proses klik tombol 'Setuju' dari email zetheron.id@gmail.com dan kembalikan(status_code, html)."""
+    """Proses klik tombol 'Setuju' dari email zetheron.id@gmail.com dan kembalikan (status_code, html)."""
     ok, msg, rec = auth.approve_password_reset_by_token(int(req_id or 0), str(token or ""))
     if not ok or not rec:
         html = (
             "<!doctype html><html><head><meta charset='utf-8'><title>UGStack Reset Password</title></head>"
             "<body style='font-family:Inter,system-ui,sans-serif;padding:32px;background:#0A0A0A;color:#FAFAFA;'>"
             "<div style='max-width:520px;margin:0 auto;padding:24px;background:#121212;border:1px solid #262626;border-radius:10px;'>"
-            f"<h2 style='color:#EF4444;margin-top:0;'>✗ Gagal Menyetujui Reset Password</h2><p style='color:#A1A1AA;'>{msg}</p>"
+            f"<h2 style='color:#EF4444;margin-top:0;'>✗ Gagal Menyetujui Reset Password</h2><p style='color:#A1A1AA;'>{_html.escape(msg)}</p>"
             "</div></body></html>"
         )
         return 400, html
 
-    reply_gmail = rec.get("reply_gmail_url", "")
-    reply_mailto = rec.get("reply_mailto", "")
+    reply_gmail = _html.escape(rec.get("reply_gmail_url", ""), quote=True)
+    reply_mailto = _html.escape(rec.get("reply_mailto", ""), quote=True)
+    reset_url = _html.escape(rec.get("reset_url", ""), quote=True)
     html = (
         "<!doctype html><html><head><meta charset='utf-8'><title>Reset Password Disetujui</title></head>"
         "<body style='font-family:Inter,system-ui,-apple-system,sans-serif;padding:32px;background:#09090B;color:#F4F4F5;'>"
         "<div style='max-width:560px;margin:0 auto;padding:28px;background:#111113;border:1px solid #27272A;border-radius:12px;'>"
-        "<h2 style='color:#F4F4F5;margin-top:0;'>✅ Reset Password Disetujui (Berlaku 10 Menit)</h2>"
-        f"<p style='color:#A1A1AA;'>{msg}</p>"
-        f"<p style='line-height:1.7;'>Username / NPM: <b>{rec.get('matched_username', '')}</b><br>"
-        f"Password Sementara (10 Menit): <b style='color:#F4F4F5;background:#27272A;padding:2px 8px;border-radius:6px;'>{rec.get('temp_password', '')}</b><br>"
-        f"Kode Reset (10 Menit): <code>{rec.get('reset_token', '')}</code><br>"
-        f"Email Tujuan: <b>{rec.get('email', '')}</b></p>"
+        "<h2 style='color:#F4F4F5;margin-top:0;'>✅ Reset Password Disetujui (Berlaku 5 Menit)</h2>"
+        f"<p style='color:#A1A1AA;'>{_html.escape(msg)}</p>"
+        f"<p style='line-height:1.7;'>Username / NPM: <b>{_html.escape(rec.get('matched_username', ''))}</b><br>"
+        f"Password Sementara (5 Menit): <b style='color:#F4F4F5;background:#27272A;padding:2px 8px;border-radius:6px;'>{_html.escape(rec.get('temp_password', ''))}</b><br>"
+        f"Kode Reset (5 Menit): <code>{_html.escape(rec.get('reset_token', ''))}</code><br>"
+        f"Email Tujuan: <b>{_html.escape(rec.get('email', ''))}</b></p>"
         f"<div style='margin-top:20px;'>"
-        f"<a href='{reply_gmail}' style='display:inline-block;padding:10px 18px;background:#FAFAFA;color:#09090B;text-decoration:none;border-radius:8px;font-weight:600;margin-right:8px;'>📧 Buka Balasan Gmail</a>"
-        f"<a href='{reply_mailto}' style='display:inline-block;padding:10px 18px;background:#18181B;color:#F4F4F5;border:1px solid #27272A;text-decoration:none;border-radius:8px;'>✉️ Buka Aplikasi Email</a>"
+        f"<a href='{reset_url}' style='display:inline-block;padding:10px 18px;background:#04AA6D;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:600;margin-right:8px;margin-bottom:8px;'>🔐 Halaman Reset Password (5 Menit)</a>"
+        f"<a href='{reply_gmail}' style='display:inline-block;padding:10px 18px;background:#FAFAFA;color:#09090B;text-decoration:none;border-radius:8px;font-weight:600;margin-right:8px;margin-bottom:8px;'>📧 Buka Balasan Gmail</a>"
+        f"<a href='{reply_mailto}' style='display:inline-block;padding:10px 18px;background:#18181B;color:#F4F4F5;border:1px solid #27272A;text-decoration:none;border-radius:8px;margin-bottom:8px;'>✉️ Buka Aplikasi Email</a>"
         f"</div></div></body></html>"
     )
     return 200, html
 
 
+def _render_reset_password_form(username: str, token: str, remaining_seconds: int, error_msg: str = "") -> str:
+    safe_user = _html.escape(username, quote=True)
+    safe_tok = _html.escape(token, quote=True)
+    err_html = f"<div style='padding:10px 12px;background:#3F1515;border:1px solid #EF4444;border-radius:8px;color:#FCA5A5;font-size:13px;margin-bottom:14px;'>{_html.escape(error_msg)}</div>" if error_msg else ""
+    mins, secs = divmod(max(0, int(remaining_seconds)), 60)
+    return (
+        "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>Reset Password UGStack (5 Menit)</title></head>"
+        "<body style='font-family:Inter,system-ui,-apple-system,sans-serif;padding:24px;background:#09090B;color:#F4F4F5;'>"
+        "<div style='max-width:460px;margin:24px auto;padding:28px;background:#111113;border:1px solid #27272A;border-radius:12px;'>"
+        "<h2 style='margin-top:0;color:#F4F4F5;'>🔐 Reset Password (5 Menit)</h2>"
+        f"<p style='color:#A1A1AA;font-size:14px;'>Akun: <b style='color:#F4F4F5;'>{_html.escape(username)}</b></p>"
+        f"<p id='timer-box' style='color:#FBBF24;font-size:13px;font-weight:600;'>⏳ Sisa waktu: <span id='cd'>{mins:02d}:{secs:02d}</span> (batas waktu 5 menit)</p>"
+        f"{err_html}"
+        "<form method='post' action='/api/reset-password' style='display:flex;flex-direction:column;gap:12px;'>"
+        f"<input type='hidden' name='user' value='{safe_user}'>"
+        f"<input type='hidden' name='token' value='{safe_tok}'>"
+        "<label style='font-size:13px;color:#D4D4D8;'>Password Baru (min. 8 karakter, huruf + angka)"
+        "<input type='password' name='new_password' required minlength='8' style='width:100%;box-sizing:border-box;margin-top:6px;padding:10px 12px;border-radius:8px;border:1px solid #27272A;background:#18181B;color:#F4F4F5;'></label>"
+        "<label style='font-size:13px;color:#D4D4D8;'>Ulangi Password Baru"
+        "<input type='password' name='confirm_password' required minlength='8' style='width:100%;box-sizing:border-box;margin-top:6px;padding:10px 12px;border-radius:8px;border:1px solid #27272A;background:#18181B;color:#F4F4F5;'></label>"
+        "<button id='submit-btn' type='submit' style='margin-top:6px;padding:12px;border:none;border-radius:8px;background:#FAFAFA;color:#09090B;font-weight:700;cursor:pointer;'>Simpan Password Baru</button>"
+        "</form>"
+        "<script>"
+        f"let rem={max(0, int(remaining_seconds))};"
+        "const cd=document.getElementById('cd'),btn=document.getElementById('submit-btn'),tb=document.getElementById('timer-box');"
+        "const iv=setInterval(()=>{if(rem<=0){clearInterval(iv);cd.textContent='00:00';tb.textContent='⏰ Waktu reset password (5 menit) telah habis.';tb.style.color='#F87171';btn.disabled=true;btn.style.opacity='0.5';return;}rem--;const m=String(Math.floor(rem/60)).padStart(2,'0'),s=String(rem%60).padStart(2,'0');cd.textContent=m+':'+s;},1000);"
+        "</script>"
+        "</div></body></html>"
+    )
+
+
+def handle_reset_password_html(
+    username: str = "",
+    token: str = "",
+    new_password: str = "",
+    confirm_password: str = "",
+    is_post: bool = False,
+    now: float = None,
+) -> tuple[int, str]:
+    """Tangani halaman/submit reset password 5 menit dari tautan email (/api/reset-password)."""
+    if is_post:
+        ok, msg = auth.complete_password_reset(username, token, new_password, confirm_password, now=now)
+        if ok:
+            html = (
+                "<!doctype html><html><head><meta charset='utf-8'><title>Password Berhasil Direset</title></head>"
+                "<body style='font-family:Inter,system-ui,sans-serif;padding:32px;background:#09090B;color:#F4F4F5;'>"
+                "<div style='max-width:480px;margin:24px auto;padding:28px;background:#111113;border:1px solid #27272A;border-radius:12px;'>"
+                "<h2 style='color:#10B981;margin-top:0;'>✅ Password Berhasil Direset</h2>"
+                f"<p style='color:#D4D4D8;'>{_html.escape(msg)}</p>"
+                "<a href='/' style='display:inline-block;margin-top:12px;padding:10px 18px;background:#FAFAFA;color:#09090B;text-decoration:none;border-radius:8px;font-weight:600;'>Kembali ke Login UGStack</a>"
+                "</div></body></html>"
+            )
+            return 200, html
+        ok_v, _, info = auth.validate_reset_link(username, token, now=now)
+        if ok_v and info:
+            return 400, _render_reset_password_form(info["username"], token, info["remaining_seconds"], error_msg=msg)
+        html = (
+            "<!doctype html><html><head><meta charset='utf-8'><title>Reset Password Kedaluwarsa</title></head>"
+            "<body style='font-family:Inter,system-ui,sans-serif;padding:32px;background:#09090B;color:#F4F4F5;'>"
+            "<div style='max-width:480px;margin:24px auto;padding:28px;background:#111113;border:1px solid #27272A;border-radius:12px;'>"
+            "<h2 style='color:#EF4444;margin-top:0;'>✗ Reset Password Gagal</h2>"
+            f"<p style='color:#A1A1AA;'>{_html.escape(msg)}</p>"
+            "<a href='/' style='display:inline-block;margin-top:12px;padding:10px 18px;background:#18181B;color:#F4F4F5;border:1px solid #27272A;text-decoration:none;border-radius:8px;'>Kembali ke UGStack</a>"
+            "</div></body></html>"
+        )
+        return 400, html
+
+    ok_v, msg_v, info = auth.validate_reset_link(username, token, now=now)
+    if not ok_v or not info:
+        html = (
+            "<!doctype html><html><head><meta charset='utf-8'><title>Tautan Reset Tidak Valid</title></head>"
+            "<body style='font-family:Inter,system-ui,sans-serif;padding:32px;background:#09090B;color:#F4F4F5;'>"
+            "<div style='max-width:480px;margin:24px auto;padding:28px;background:#111113;border:1px solid #27272A;border-radius:12px;'>"
+            "<h2 style='color:#EF4444;margin-top:0;'>✗ Tautan Reset Password Tidak Valid</h2>"
+            f"<p style='color:#A1A1AA;'>{_html.escape(msg_v)}</p>"
+            "<a href='/' style='display:inline-block;margin-top:12px;padding:10px 18px;background:#18181B;color:#F4F4F5;border:1px solid #27272A;text-decoration:none;border-radius:8px;'>Kembali ke UGStack</a>"
+            "</div></body></html>"
+        )
+        return 400, html
+    return 200, _render_reset_password_form(info["username"], token, info["remaining_seconds"])
+
+
 def _install_reset_approve_hook() -> None:
-    """Pasang route /api/reset-approve langsung pada FletStaticFiles agar berjalan di ft.app() maupun ASGI."""
+    """Pasang route /api/reset-approve & /api/reset-password langsung pada FletStaticFiles agar berjalan di ft.app() maupun ASGI."""
     try:
         import urllib.parse as _up
         from fastapi.responses import HTMLResponse
@@ -524,7 +622,8 @@ def _install_reset_approve_hook() -> None:
         orig_call = FletStaticFiles.__call__
 
         async def _wrapped_call(self, scope, receive, send):
-            if scope.get("type") == "http" and scope.get("path", "").rstrip("/") == "/api/reset-approve":
+            path = (scope.get("path", "") or "").rstrip("/")
+            if scope.get("type") == "http" and path == "/api/reset-approve":
                 qs = _up.parse_qs(scope.get("query_string", b"").decode("utf-8", errors="ignore"))
                 try:
                     rid = int((qs.get("id") or ["0"])[0])
@@ -532,6 +631,36 @@ def _install_reset_approve_hook() -> None:
                     rid = 0
                 tok = (qs.get("token") or [""])[0]
                 code, html = handle_reset_approve_html(rid, tok)
+                resp = HTMLResponse(content=html, status_code=code)
+                await resp(scope, receive, send)
+                return
+            if scope.get("type") == "http" and path == "/api/reset-password":
+                method = (scope.get("method") or "GET").upper()
+                if method == "POST":
+                    chunks = []
+                    while True:
+                        event = await receive()
+                        if event.get("type") == "http.request":
+                            chunks.append(event.get("body", b""))
+                            if not event.get("more_body", False):
+                                break
+                        elif event.get("type") == "http.disconnect":
+                            break
+                    form = _up.parse_qs(b"".join(chunks).decode("utf-8", errors="ignore"))
+                    code, html = handle_reset_password_html(
+                        username=(form.get("user") or [""])[0],
+                        token=(form.get("token") or [""])[0],
+                        new_password=(form.get("new_password") or [""])[0],
+                        confirm_password=(form.get("confirm_password") or [""])[0],
+                        is_post=True,
+                    )
+                else:
+                    qs = _up.parse_qs(scope.get("query_string", b"").decode("utf-8", errors="ignore"))
+                    code, html = handle_reset_password_html(
+                        username=(qs.get("user") or [""])[0],
+                        token=(qs.get("token") or [""])[0],
+                        is_post=False,
+                    )
                 resp = HTMLResponse(content=html, status_code=code)
                 await resp(scope, receive, send)
                 return
@@ -561,11 +690,31 @@ def _make_asgi_app():
         secret_key=os.environ.get("FLET_SECRET_KEY", "ugstack-upload-secret-2026"),
     )
     try:
+        import urllib.parse as _up
+        from fastapi import Request
         from fastapi.responses import HTMLResponse
 
         @asgi.get("/api/reset-approve")
         async def _reset_approve_endpoint(id: int = 0, token: str = ""):
             code, html = handle_reset_approve_html(id, token)
+            return HTMLResponse(content=html, status_code=code)
+
+        @asgi.get("/api/reset-password")
+        async def _reset_password_get(user: str = "", token: str = ""):
+            code, html = handle_reset_password_html(username=user, token=token, is_post=False)
+            return HTMLResponse(content=html, status_code=code)
+
+        @asgi.post("/api/reset-password")
+        async def _reset_password_post(request: Request):
+            raw_body = (await request.body()).decode("utf-8", errors="ignore")
+            form = _up.parse_qs(raw_body)
+            code, html = handle_reset_password_html(
+                username=(form.get("user") or [""])[0],
+                token=(form.get("token") or [""])[0],
+                new_password=(form.get("new_password") or [""])[0],
+                confirm_password=(form.get("confirm_password") or [""])[0],
+                is_post=True,
+            )
             return HTMLResponse(content=html, status_code=code)
     except Exception:
         pass

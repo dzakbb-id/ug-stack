@@ -20,7 +20,7 @@ from services import auth, modules as svc, progress, reports
 from services.roles import can_manage_content, is_admin
 from services.storage import StorageError
 from services.validators import BAHASA, LEVELS
-from views.auth_view import open_change_avatar, open_change_username
+from views.auth_view import open_change_avatar, open_change_email, open_change_username
 
 LEVEL_COLORS = {"Beginner": "#04AA6D", "Intermediate": "#F59E0B", "Advanced": "#E53935"}
 SORT_OPTIONS = [("judul", "Judul (A-Z)"), ("durasi", "Durasi"), ("level", "Tingkat")]
@@ -324,12 +324,16 @@ def get_dashboard_view(page: ft.Page, user: dict, mobile: bool = False, on_logou
     def on_username():
         open_change_username(page, user, on_done=lambda: on_nav("dashboard") if on_nav else refresh())
 
+    def on_email():
+        open_change_email(page, user, on_done=lambda: on_nav("dashboard") if on_nav else refresh())
+
     sidebar = sidebar_shell(
         brand_title="Dasbor",
         nav_buttons=nav_buttons,
         user=user,
         profile_actions=[
             *([ft.TextButton("✏️ Ubah Username", on_click=lambda e: on_username())] if not is_admin(user) else []),
+            *([ft.TextButton("📧 Atur Email", on_click=lambda e: on_email())] if not is_admin(user) else []),
             ft.TextButton("Ganti password", on_click=lambda e: on_change_password() if on_change_password else None),
             ft.ElevatedButton(
                 "Keluar",
